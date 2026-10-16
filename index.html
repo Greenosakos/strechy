@@ -6,7 +6,7 @@
 <title>The GOAT: who is the greatest of all time?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&display=swap" rel="stylesheet">
 <style>
   /* lets the accent colour glide between sports */
   @property --accent { syntax: "<color>"; inherits: true; initial-value: #C2410C; }
@@ -16,44 +16,47 @@
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
 
-    --paper: #F4F5F8;
-    --ink: #13172B;
-    --muted: #586078;
-    --line: #D3D7E2;
+    --paper: #FBFAF8;
+    --card: #FFFFFF;
+    --ink: #1F1E1D;
+    --muted: #73726C;
+    --border: #E4E1DA;
+    --hover: #F1EFEA;
+    --line: #E8E5DE;
     --accent: #C2410C;
-    --tint: var(--line);
     --glow: transparent;
-    --bg-op: 0.16;
-    --pad: clamp(20px, 5vw, 48px);
-    --nav-h: 62px;
+    --bg-op: 0.12;
     --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
     --spring: cubic-bezier(0.2, 1.6, 0.4, 1);
-    --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
-    --text: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
     color-scheme: light;
     transition: --accent 0.6s ease;
   }
   @supports (background: color-mix(in srgb, red, blue)) {
-    :root {
-      --tint: color-mix(in srgb, var(--accent) 12%, transparent);
-      --glow: color-mix(in srgb, var(--accent) 13%, transparent);
-    }
+    :root { --glow: color-mix(in srgb, var(--accent) 10%, transparent); }
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --paper: #0E1118;
-      --ink: #F2F4FA;
-      --muted: #A6ADC2;
-      --line: #2B3040;
+      --paper: #262624;
+      --card: #30302E;
+      --ink: #ECEAE3;
+      --muted: #A3A19A;
+      --border: #44433F;
+      --hover: #3A3936;
+      --line: #44433F;
       --bg-op: 0.24;
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --paper: #0E1118;
-    --ink: #F2F4FA;
-    --muted: #A6ADC2;
-    --line: #2B3040;
+    --paper: #262624;
+    --card: #30302E;
+    --ink: #ECEAE3;
+    --muted: #A3A19A;
+    --border: #44433F;
+    --hover: #3A3936;
+    --line: #44433F;
     --bg-op: 0.24;
     color-scheme: dark;
   }
@@ -61,37 +64,21 @@
   html { scroll-padding-top: env(safe-area-inset-top, 0px); scroll-behavior: smooth; }
   *, *::before, *::after { box-sizing: inherit; }
   [hidden] { display: none !important; }
-  button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
   body {
     margin: 0;
     background: var(--paper);
     color: var(--ink);
-    font-family: var(--text);
-    font-size: 1.0625rem;
-    line-height: 1.55;
+    font: 400 15px/1.55 var(--sans);
     -webkit-font-smoothing: antialiased;
-    text-size-adjust: 100%;
     -webkit-text-size-adjust: 100%;
-  }
-
-  /* All sizes below follow the width of this column (cqi), so the proportions
-     hold on a phone, a tablet and a wide desktop alike. */
-  main {
-    position: relative;
-    z-index: 1;
-    container-type: inline-size;
-    max-width: 1180px;
-    margin: 0 auto;
-    padding-top: clamp(24px, 5vw, 60px);
-    padding-right: max(var(--pad), env(safe-area-inset-right, 0px));
-    padding-left: max(var(--pad), env(safe-area-inset-left, 0px));
-    padding-bottom: calc(var(--nav-h) + 10px + env(safe-area-inset-bottom, 0px) + 56px);
+    text-size-adjust: 100%;
   }
 
   /* motion */
   @keyframes rise {
-    from { opacity: 0; transform: translateY(16px); }
+    from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: none; }
   }
   @keyframes pop {
@@ -99,361 +86,286 @@
     to   { opacity: 1; transform: none; }
   }
   @keyframes noun {
-    from { opacity: 0; transform: translateY(0.35em); }
+    from { opacity: 0; transform: translateY(0.3em); }
     to   { opacity: 1; transform: none; }
-  }
-  @keyframes wipe {
-    from { background-position: 100% 0; }
-    to   { background-position: 0 0; }
   }
   .enter { animation: rise 0.7s calc(var(--i, 0) * 90ms) var(--ease) backwards; }
 
+  /* one calm column, centred like a chat home screen */
+  .stage {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: clamp(64px, 30vh, 320px) clamp(16px, 5vw, 32px) 64px;
+    transition: padding-top 0.8s var(--ease);
+  }
+  .stage.answered { padding-top: clamp(28px, 7vh, 72px); }
+
+  .intro { text-align: center; }
   .lead {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     margin: 0;
-    font-family: var(--display);
-    font-weight: 600;
-    font-size: clamp(1.1rem, 2.4vw, 1.5rem);
-    font-size: clamp(1.1rem, 3.2cqi, 1.5rem);
+    font-size: 13.5px;
     color: var(--muted);
   }
-
+  .mark {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid var(--accent);
+    border-radius: 50%;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+  }
   h1 {
-    margin: 0.2em 0 0.55em;
-    font-family: var(--display);
-    font-weight: 800;
-    font-size: clamp(2.3rem, 7vw, 4.8rem);
-    font-size: clamp(2.3rem, 7.6cqi, 4.8rem);
-    line-height: 1.02;
-    letter-spacing: -0.005em;
+    margin: 0.5em 0 1em;
+    font: 400 clamp(1.65rem, 4.4vw, 2.35rem) / 1.18 var(--serif);
+    letter-spacing: -0.012em;
     text-wrap: balance;
   }
   #noun { display: inline-block; }
   #noun.swap { animation: noun 0.5s var(--ease) backwards; }
 
-  /* The pill from the sketch: you type a name, it shows where that name ranks */
-  .pill {
-    --from: var(--paper);
-    --to: #C2410C;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    min-height: clamp(84px, 16vw, 168px);
-    min-height: clamp(84px, 17cqi, 168px);
-    padding: 0 clamp(14px, 3vw, 30px) 0 clamp(24px, 5vw, 64px);
-    padding: 0 clamp(14px, 3cqi, 30px) 0 clamp(24px, 6cqi, 64px);
-    border: clamp(3px, 0.5vw, 4px) solid var(--ink);
-    border-radius: 999px;
-    color: var(--ink);
-    background: transparent;
-    box-shadow: 0 0 0 0 transparent;
-    transition: border-color 0.3s, box-shadow 0.3s var(--ease);
+  /* the composer card */
+  .composer {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    box-shadow: 0 1px 2px rgba(20, 18, 14, 0.03), 0 8px 28px rgba(20, 18, 14, 0.04);
+    transition: border-color 0.35s, box-shadow 0.35s;
   }
-  .pill:focus-within { box-shadow: 0 0 0 4px var(--paper), 0 0 0 7px var(--accent); }
-
-  .pill.answered {
-    border-color: transparent;
-    color: #fff;
-    background: linear-gradient(90deg, var(--to) 0 50%, var(--from) 50% 100%);
-    background-size: 200% 100%;
-    background-position: 0 0;
-    background-origin: border-box;
-    transition: border-color 0.3s, box-shadow 0.3s var(--ease), color 0.2s 0.3s;
+  @supports (background: color-mix(in srgb, red, blue)) {
+    .composer:focus-within {
+      border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 13%, transparent), 0 8px 28px rgba(20, 18, 14, 0.05);
+    }
+    .composer.done { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
   }
-  .pill.clearing {
-    color: var(--ink);
-    transition: border-color 0.3s, box-shadow 0.3s var(--ease), color 0.25s 0.25s;
-  }
-  .pill.wipe { animation: wipe 0.7s cubic-bezier(0.7, 0, 0.2, 1) both; }
-  .pill.wipe .rank .num { animation: pop 0.5s 0.45s var(--spring) both; }
-
-  .pill input {
-    flex: 1;
-    min-width: 0;
+  .composer input {
+    display: block;
+    width: 100%;
     margin: 0;
-    padding: 0.08em 0;
+    padding: 18px 20px 8px;
     border: 0;
+    border-radius: 22px 22px 0 0;
     outline: 0;
-    border-radius: 0;
     background: none;
-    color: inherit;
-    font-family: var(--display);
-    font-weight: 900;
-    font-size: clamp(2rem, 8.6vw, 6.6rem);
-    font-size: clamp(2rem, 10cqi, 6.6rem);
-    line-height: 1.1;
-    caret-color: currentColor;
+    color: var(--ink);
+    font: 400 16px/1.4 var(--sans);
     -webkit-appearance: none;
     appearance: none;
   }
-  .pill input::placeholder { color: var(--muted); opacity: 1; font-weight: 700; }
+  .composer input::placeholder { color: var(--muted); opacity: 0.85; }
 
-  .rank {
-    flex: none;
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 10px 10px 20px;
+  }
+  .hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+
+  /* sport picker, styled like a model switcher */
+  .picker { position: relative; }
+  .picker-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 8px 0 10px;
+    border: 0;
+    border-radius: 9px;
+    background: none;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  .picker-btn:hover, .picker-btn[aria-expanded="true"] { background: var(--hover); }
+  .picker-btn:focus-visible, .send:focus-visible, .row:focus-visible, .opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .picker-btn .muted { font-weight: 400; color: var(--muted); }
+  .chev { flex: none; color: var(--muted); transition: transform 0.25s var(--ease); }
+  .picker-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+
+  .menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    z-index: 20;
+    width: min(264px, calc(100vw - 32px));
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(20, 18, 14, 0.14);
+    transform-origin: top right;
+    animation: menu-in 0.2s var(--ease);
+  }
+  @keyframes menu-in { from { opacity: 0; transform: scale(0.96) translateY(-4px); } }
+  .opt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 9px;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+  .opt .pl { margin-left: auto; font-weight: 400; color: var(--muted); }
+  .opt .check { flex: none; color: var(--accent); opacity: 0; transition: opacity 0.2s; }
+  .opt[aria-selected="true"] { background: var(--hover); }
+  .opt[aria-selected="true"] .check { opacity: 1; }
+  .opt:hover, .opt.focus { background: var(--hover); }
+
+  /* send button turns into the rank badge */
+  .send {
     display: grid;
     place-items: center;
-    width: clamp(52px, 9vw, 96px);
-    width: clamp(52px, 10cqi, 96px);
-    aspect-ratio: 1;
+    width: 32px;
+    height: 32px;
     padding: 0;
-    border: clamp(3px, 0.6vw, 5px) solid currentColor;
+    border: 0;
     border-radius: 50%;
-    background: none;
-    color: inherit;
-    font-family: var(--display);
-    font-weight: 800;
-    font-size: clamp(1.6rem, 5vw, 3.4rem);
-    font-size: clamp(1.7rem, 5.6cqi, 3.4rem);
+    background: var(--hover);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
     line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s, transform 0.3s var(--spring);
   }
-  button.rank { cursor: pointer; transition: background-color 0.25s, color 0.25s, transform 0.3s var(--spring); }
-  button.rank:active { transform: scale(0.92); }
-  .pill:not(.answered) button.rank:hover { background: var(--ink); color: var(--paper); transform: scale(1.08); }
-  button.rank:focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }
+  .send svg { width: 16px; height: 16px; }
+  .send.ready, .send.answered { background: var(--accent); color: #fff; }
+  .send.unranked { background: #56607A; }
+  .send:active { transform: scale(0.9); }
+  .send.pop .num { animation: pop 0.5s var(--spring) both; }
+  .num { display: grid; place-items: center; }
 
-  .verdict { margin: 1rem 0 0; font-size: 1.15rem; color: var(--muted); }
-  .verdict.show { animation: rise 0.45s 0.4s var(--ease) backwards; }
+  .verdict { margin: 14px 0 0; min-height: 1.5em; text-align: center; font-size: 13px; color: var(--muted); }
+  .verdict.show { animation: rise 0.45s 0.25s var(--ease) backwards; }
 
-  /* results: chips on top for phones, vertical list beside the profile on wide screens */
-  .detail {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 22px;
-    margin-top: clamp(24px, 5vw, 44px);
-  }
-  .side { order: -1; min-width: 0; }
-
-  .list-title {
+  /* results */
+  .results { margin-top: 22px; }
+  .rankhead {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
     gap: 12px;
-    margin: 0 0 0.5rem;
-    font-family: var(--display);
-    font-weight: 700;
-    font-size: 1.2rem;
+    margin: 0 2px 10px;
+    font-size: 12.5px;
     color: var(--muted);
+    animation: rise 0.45s var(--d, 0s) var(--ease) backwards;
   }
-  .ranking {
-    position: relative;
-    display: flex;
-    gap: 8px;
-    margin: 0 calc(var(--pad) * -1);
-    padding: 4px var(--pad) 10px;
-    list-style: none;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x proximity;
-    scroll-padding-inline: var(--pad);
-    scrollbar-width: none;
-  }
-  .ranking::-webkit-scrollbar { display: none; }
-  .ranking li {
-    flex: none;
-    scroll-snap-align: center;
-    animation: rise 0.5s calc(var(--d, 0s) + var(--i, 0) * 70ms) var(--ease) backwards;
-  }
+  .legend { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 
+  .ranking { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .ranking li { animation: rise 0.45s calc(var(--d, 0s) + var(--i, 0) * 60ms) var(--ease) backwards; }
   .row {
     position: relative;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 10px;
-    padding: 7px 16px 7px 7px;
-    border: 1.5px solid var(--line);
+    gap: 8px;
+    height: 34px;
+    padding: 0 11px 0 4px;
+    border: 1px solid var(--border);
     border-radius: 999px;
-    background: var(--paper);
+    background: var(--card);
     color: var(--ink);
-    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
     white-space: nowrap;
     cursor: pointer;
-    transition: background-color 0.3s, border-color 0.3s, color 0.3s, transform 0.3s var(--spring);
+    transition: background-color 0.25s, border-color 0.25s, color 0.25s, transform 0.3s var(--spring);
   }
   .row:active { transform: scale(0.96); }
-  .row .rank { width: 32px; border-width: 2px; font-size: 1.05rem; transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
-  .row .rname { font-family: var(--display); font-weight: 800; font-size: 1.2rem; line-height: 1.1; }
+  .row .rk {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1;
+  }
   .row[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .row[data-mine]::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .row[data-mine]::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
   .row[aria-current="true"][data-mine]::after { background: #fff; }
-  .row:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-  .mine {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+  .mine { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  @media (hover: hover) {
+    .row:not([aria-current="true"]):hover { background: var(--hover); }
   }
 
-  .profile { scroll-margin-top: 16px; min-width: 0; }
-  .head { display: flex; align-items: center; gap: 16px; margin: 0 0 1.1rem; animation: rise 0.45s var(--d, 0s) var(--ease) backwards; }
+  .profile { margin-top: 28px; min-width: 0; }
+  .head { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; animation: rise 0.45s var(--d, 0s) var(--ease) backwards; }
   .head h2 {
     margin: 0;
-    font-family: var(--display);
-    font-weight: 900;
-    font-size: clamp(2rem, 5vw, 3.4rem);
-    font-size: clamp(2rem, 8cqi, 3.4rem);
-    line-height: 1;
+    font: 400 clamp(1.5rem, 4vw, 1.9rem) / 1.15 var(--serif);
+    letter-spacing: -0.01em;
     text-wrap: balance;
-    hyphens: manual;
   }
-  .head .rank {
-    width: 52px;
-    border-width: 3px;
-    font-size: 1.6rem;
+  .head .rk {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid var(--ink);
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
     animation: pop 0.5s calc(var(--d, 0s) + 0.05s) var(--spring) backwards;
   }
   .why {
-    margin: 0 0 1.1rem;
-    max-width: 34ch;
-    font-size: clamp(1.3rem, 2.5vw, 1.7rem);
-    font-size: clamp(1.3rem, 4.4cqi, 1.7rem);
-    line-height: 1.3;
-    font-weight: 600;
+    margin: 0 0 16px;
+    max-width: 52ch;
+    font: 400 1.1rem / 1.5 var(--serif);
     text-wrap: pretty;
     animation: rise 0.45s calc(var(--d, 0s) + 0.07s) var(--ease) backwards;
   }
-  .facts { margin: 0; padding: 0; list-style: none; max-width: 56ch; }
+  .facts { margin: 0; padding: 0; list-style: none; }
   .facts li {
-    text-wrap: pretty;
-    hyphens: manual;
-    padding: 0.65em 0;
+    padding: 0.6em 0;
     border-top: 1px solid var(--line);
+    font-size: 14.5px;
+    text-wrap: pretty;
     animation: rise 0.45s calc(var(--d, 0s) + 0.14s + var(--i, 0) * 70ms) var(--ease) backwards;
   }
   .facts li:last-child { border-bottom: 1px solid var(--line); }
+  .nb { white-space: nowrap; }
 
   .note {
-    margin: 2.2rem 0 0;
-    font-size: 0.875rem;
+    margin: 28px 0 0;
+    text-align: center;
+    font-size: 12px;
     color: var(--muted);
     animation: rise 0.5s calc(var(--d, 0s) + 0.5s) var(--ease) backwards;
   }
 
-  @media (min-width: 820px) {
-    .detail { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: clamp(32px, 5vw, 56px); align-items: start; }
-    .side { order: 0; }
-    .list-title { margin-bottom: 0.6rem; }
-    .ranking {
-      display: grid;
-      gap: 6px;
-      margin: 0;
-      padding: 0;
-      overflow: visible;
-    }
-    .row {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      width: 100%;
-      padding: 10px 16px 10px 14px;
-      border: 0;
-      border-radius: 18px;
-      background: none;
-      text-align: left;
-      white-space: normal;
-      gap: 14px;
-    }
-    .row .rank { width: 40px; font-size: 1.2rem; }
-    .row .rname { font-size: clamp(1.35rem, 2.8cqi, 1.65rem); line-height: 1.05; text-wrap: balance; min-width: 0; }
-    .row[aria-current="true"] {
-      background: var(--tint);
-      color: var(--ink);
-      box-shadow: inset 4px 0 0 var(--accent);
-    }
-    .row[aria-current="true"] .rank { background: var(--accent); border-color: var(--accent); color: #fff; }
+  @media (max-width: 559px) {
+    .hint { display: none; }
+    .stage { padding-bottom: 40px; }
   }
-  @media (min-width: 820px) and (hover: hover) {
-    .row:hover { background: var(--tint); transform: translateX(5px); }
-    .row:active { transform: translateX(2px) scale(0.99); }
+  @media (max-height: 520px) {
+    .stage { padding-top: 24px; }
   }
-
-  /* Sport dock: floating, borderless, items grow under the pointer */
-  .dock {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-    z-index: 5;
-    width: fit-content;
-    max-width: calc(100% - 20px);
-    margin: 0 auto;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--paper);
-    box-shadow: 0 10px 30px rgba(10, 14, 30, 0.14);
-  }
-  @supports (background: color-mix(in srgb, red, blue)) {
-    .dock {
-      background: color-mix(in srgb, var(--paper) 82%, transparent);
-      -webkit-backdrop-filter: blur(14px);
-      backdrop-filter: blur(14px);
-    }
-  }
-  .tablist {
-    position: relative;
-    display: flex;
-    gap: 2px;
-    padding: 8px 18px;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-    border-radius: inherit;
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
-    mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
-  }
-  .tablist::-webkit-scrollbar { display: none; }
-
-  .tab {
-    position: relative;
-    isolation: isolate;
-    flex: none;
-    height: 44px;
-    padding: 0 clamp(11px, 2.6vw, 18px);
-    border: 0;
-    border-radius: 999px;
-    background: none;
-    color: var(--muted);
-    font-family: var(--display);
-    font-weight: 700;
-    font-size: clamp(1.05rem, 3.4vw, 1.25rem);
-    white-space: nowrap;
-    cursor: pointer;
-    transition: transform 0.3s var(--spring), color 0.25s;
-  }
-  .tab::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    background: var(--accent);
-    opacity: 0;
-    transform: scale(0.55);
-    transition: opacity 0.25s, transform 0.4s var(--spring);
-  }
-  .tab[aria-selected="true"] { color: #fff; }
-  .tab[aria-selected="true"]::before { opacity: 1; transform: none; }
-  .tab:active { transform: scale(0.94); }
-  .tab:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
-
-  @media (hover: hover) {
-    .tab:hover { transform: scale(1.28); color: var(--ink); }
-    .tab[aria-selected="true"]:hover { color: #fff; }
-    .tab:hover + .tab,
-    .tab:has(+ .tab:hover) { transform: scale(1.12); }
-  }
-
-  .nb { white-space: nowrap; }
-  .legend {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--text);
-    font-weight: 400;
-    font-size: 0.85rem;
-    color: var(--muted);
-  }
-  .legend i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 
   /* Ambient background: one slow, low-contrast scene per sport */
   .ambient { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; contain: strict; }
@@ -535,51 +447,48 @@
   .faint { fill: var(--c); fill-opacity: 0.035; stroke: none; }
   .scene[data-sport="rap"] { stroke-opacity: calc(var(--bg-op) * 0.38); }
 
-  /* short landscape screens */
-  @media (max-height: 520px) {
-    main { padding-top: 16px; }
-    .pill { min-height: 84px; }
-    .pill input { font-size: clamp(2rem, 6cqi, 3.6rem); }
-    h1 { font-size: clamp(1.8rem, 5cqi, 3rem); }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; }
-    .tab:hover, .tab:hover + .tab, .tab:has(+ .tab:hover), .row:hover { transform: none !important; }
   }
 </style>
 </head>
 <body>
   <div class="ambient" id="ambient" aria-hidden="true"><div class="glow"></div></div>
 
-  <main>
-    <p class="lead enter" style="--i:0">The GOAT is</p>
-    <h1 class="enter" style="--i:1">Who is the greatest <span id="noun">basketball player</span> of all time?</h1>
+  <main class="stage" id="stage">
+    <header class="intro">
+      <p class="lead enter" style="--i:0"><span class="mark">1</span>The GOAT is</p>
+      <h1 class="enter" style="--i:1">Who is the greatest <span id="noun">basketball player</span> of all time?</h1>
+    </header>
 
-    <div class="pill-wrap enter" style="--i:2">
-      <div class="pill" id="pill">
-        <input id="answer" type="text" placeholder="Type a name…" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="go" aria-label="Your answer">
-        <button class="rank" id="go" type="button" aria-label="Show where this ranks"><span class="num" id="num">?</span></button>
+    <section class="composer enter" id="composer" style="--i:2">
+      <input id="answer" type="text" placeholder="Type a name…" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="go" aria-label="Your answer">
+      <div class="bar">
+        <p class="hint" id="hint">Press Enter to see where it ranks</p>
+        <div class="tools">
+          <div class="picker">
+            <button class="picker-btn" id="pickerBtn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="menu" aria-label="Choose a sport">
+              <i class="dot" id="pickerDot"></i>
+              <span id="pickerName">Basketball</span>
+              <span class="muted" id="pickerNoun">players</span>
+              <svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"/></svg>
+            </button>
+            <ul class="menu" id="menu" role="listbox" aria-label="Sport" hidden></ul>
+          </div>
+          <button class="send" id="go" type="button" aria-label="Show where this ranks"><span class="num" id="num"></span></button>
+        </div>
       </div>
-    </div>
+    </section>
     <p class="verdict" id="verdict" aria-live="polite"></p>
 
     <div class="results" id="results" hidden>
-      <div class="detail">
-        <div class="side">
-          <p class="list-title"><span id="listName"></span><span class="legend" id="legend" hidden><i></i>your answer</span></p>
-          <ol class="ranking" id="ranking"></ol>
-        </div>
-        <article class="profile" id="profile"></article>
-      </div>
+      <p class="rankhead"><span id="listName"></span><span class="legend" id="legend" hidden><i></i>your answer</span></p>
+      <ol class="ranking" id="ranking"></ol>
+      <article class="profile" id="profile"></article>
       <p class="note">Picks are opinions. Stats as of mid-2026.</p>
     </div>
   </main>
-
-  <nav class="dock enter" style="--i:4" aria-label="Choose a sport">
-    <div class="tablist" id="tablist" role="tablist"></div>
-  </nav>
 
 <script>
   const SPORTS = [
@@ -746,6 +655,10 @@
   ];
 
   const UNRANKED = "#56607A";
+  const PLURAL = { basketball: "players", football: "players", hockey: "players", baseball: "players", soccer: "players", f1: "drivers", rap: "rappers", cricket: "cricketers" };
+  const HINT = "Press Enter to see where it ranks";
+  const ARROW = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg>';
+  const CHECK = '<svg class="check" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>';
 
   /* matching */
   const norm = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -774,42 +687,18 @@
   /* elements */
   const $ = (s) => document.querySelector(s);
   const root = document.documentElement;
-  const pill = $("#pill"), input = $("#answer"), badge = $("#go"), numEl = $("#num");
+  const stage = $("#stage"), composer = $("#composer"), input = $("#answer"), send = $("#go"), numEl = $("#num"), hint = $("#hint");
   const nounEl = $("#noun"), verdictEl = $("#verdict"), results = $("#results");
   const profile = $("#profile"), ranking = $("#ranking"), listName = $("#listName"), legend = $("#legend");
+  const pickerBtn = $("#pickerBtn"), pickerDot = $("#pickerDot"), pickerName = $("#pickerName"), pickerNoun = $("#pickerNoun"), menu = $("#menu");
   const ambient = $("#ambient");
-  const tablist = $("#tablist");
-  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const finePointer = window.matchMedia("(pointer: fine)").matches;
 
-  /* helpers */
   function bump(el, cls) {
     el.classList.remove(cls);
     void el.offsetWidth;
     el.classList.add(cls);
   }
-  function centerIn(box, el, smooth) {
-    if (box.scrollWidth <= box.clientWidth + 1) return;
-    const left = el.offsetLeft - (box.clientWidth - el.offsetWidth) / 2;
-    box.scrollTo({ left, behavior: smooth && !reduced ? "smooth" : "auto" });
-  }
-
-  /* keep long names inside the pill: measure the text, then scale the font down to fit */
-  const measure = document.createElement("canvas").getContext("2d");
-  function fit() {
-    input.style.fontSize = "";
-    const text = input.value;
-    if (!text) return;
-    const cs = getComputedStyle(input);
-    const base = parseFloat(cs.fontSize);
-    measure.font = cs.fontWeight + " " + base + "px " + cs.fontFamily;
-    const w = measure.measureText(text).width;
-    const avail = input.clientWidth - 2;
-    if (w > avail) input.style.fontSize = Math.max((base * avail) / w * 0.98, 16) + "px";
-  }
-  input.addEventListener("input", fit);
-  window.addEventListener("resize", fit);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 
   /* words never break in the middle (Jay-Z, B.I.G., Abdul-Jabbar) */
   function setWords(el, text) {
@@ -952,69 +841,81 @@
   const scenes = [...ambient.querySelectorAll(".scene")];
 
   /* state */
-  let sport = -1, answer = null, shown = 0, prevPill = null, rows = [], resetTimer = 0;
+  let sport = -1, answer = null, shown = 0, rows = [];
 
-  const tabs = SPORTS.map((s, i) => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "tab";
-    b.id = "tab-" + s.id;
-    b.setAttribute("role", "tab");
-    b.textContent = s.tab;
-    b.addEventListener("click", () => selectSport(i, true));
-    b.addEventListener("keydown", (e) => {
-      const last = SPORTS.length - 1;
-      let to = null;
-      if (e.key === "ArrowRight") to = i === last ? 0 : i + 1;
-      else if (e.key === "ArrowLeft") to = i === 0 ? last : i - 1;
-      else if (e.key === "Home") to = 0;
-      else if (e.key === "End") to = last;
-      if (to !== null) { e.preventDefault(); selectSport(to, false); tabs[to].focus(); }
-    });
-    tablist.appendChild(b);
-    return b;
+  /* sport picker */
+  const options = SPORTS.map((s, i) => {
+    const li = document.createElement("li");
+    li.className = "opt";
+    li.id = "opt-" + s.id;
+    li.tabIndex = -1;
+    li.setAttribute("role", "option");
+    li.innerHTML = '<i class="dot" style="background:' + s.color + '"></i><span>' + s.tab + '</span><span class="pl">' + PLURAL[s.id] + "</span>" + CHECK;
+    li.addEventListener("click", () => { selectSport(i, true); closeMenu(false); });
+    menu.appendChild(li);
+    return li;
   });
 
-  /* sweep the paper colour back over the pill, then drop to the outlined state */
-  function clearPill() {
-    clearTimeout(resetTimer);
-    if (!pill.classList.contains("answered")) return;
-    if (reduced) {
-      pill.classList.remove("answered", "wipe", "clearing");
-      return;
-    }
-    pill.style.setProperty("--from", prevPill || "var(--paper)");
-    pill.style.setProperty("--to", "var(--paper)");
-    pill.classList.add("clearing");
-    bump(pill, "wipe");
-    resetTimer = setTimeout(() => pill.classList.remove("answered", "wipe", "clearing"), 720);
+  function focusOpt(i) {
+    options.forEach((o, k) => o.classList.toggle("focus", k === i));
+    options[i].focus({ preventScroll: true });
   }
+  function openMenu() {
+    menu.hidden = false;
+    pickerBtn.setAttribute("aria-expanded", "true");
+    focusOpt(sport);
+  }
+  function closeMenu(refocus) {
+    if (menu.hidden) return;
+    menu.hidden = true;
+    pickerBtn.setAttribute("aria-expanded", "false");
+    options.forEach((o) => o.classList.remove("focus"));
+    if (refocus) pickerBtn.focus();
+  }
+  pickerBtn.addEventListener("click", () => (menu.hidden ? openMenu() : closeMenu(false)));
+  pickerBtn.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); if (menu.hidden) openMenu(); }
+  });
+  menu.addEventListener("keydown", (e) => {
+    const cur = options.findIndex((o) => o === document.activeElement);
+    const last = options.length - 1;
+    if (e.key === "ArrowDown") { e.preventDefault(); focusOpt(cur < last ? cur + 1 : 0); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); focusOpt(cur > 0 ? cur - 1 : last); }
+    else if (e.key === "Home") { e.preventDefault(); focusOpt(0); }
+    else if (e.key === "End") { e.preventDefault(); focusOpt(last); }
+    else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (cur >= 0) { selectSport(cur, false); closeMenu(true); } }
+    else if (e.key === "Escape") { e.preventDefault(); closeMenu(true); }
+    else if (e.key === "Tab") { closeMenu(false); }
+  });
+  document.addEventListener("pointerdown", (e) => {
+    if (!menu.hidden && !e.target.closest(".picker")) closeMenu(false);
+  });
 
   function selectSport(i, focusInput) {
     if (i === sport) return;
     const s = SPORTS[i];
     const swapping = sport !== -1;
-
-    clearPill();
-    sport = i; answer = null; shown = 0; prevPill = null;
+    sport = i; answer = null; shown = 0;
 
     root.style.setProperty("--accent", s.color);
     nounEl.textContent = s.noun;
     if (swapping) bump(nounEl, "swap");
+    pickerDot.style.background = s.color;
+    pickerName.textContent = s.tab;
+    pickerNoun.textContent = PLURAL[s.id];
+    options.forEach((o, k) => o.setAttribute("aria-selected", k === i ? "true" : "false"));
+
     input.value = "";
-    input.style.fontSize = "";
-    numEl.textContent = "?";
-    badge.setAttribute("aria-label", "Show where this ranks");
+    composer.classList.remove("done");
+    send.classList.remove("ready", "answered", "unranked", "pop");
+    send.setAttribute("aria-label", "Show where this ranks");
+    numEl.innerHTML = ARROW;
+    hint.textContent = HINT;
     verdictEl.textContent = "";
     verdictEl.classList.remove("show");
     results.hidden = true;
+    stage.classList.remove("answered");
 
-    tabs.forEach((t, k) => {
-      const on = k === i;
-      t.setAttribute("aria-selected", on ? "true" : "false");
-      t.tabIndex = on ? 0 : -1;
-    });
-    centerIn(tablist, tabs[i], swapping);
     const showScene = () => scenes.forEach((el) => el.classList.toggle("on", el.dataset.sport === s.id));
     if (swapping) showScene(); else requestAnimationFrame(() => requestAnimationFrame(showScene));
     if (focusInput && finePointer) input.focus({ preventScroll: true });
@@ -1023,43 +924,42 @@
   function submit() {
     const q = input.value.trim();
     if (!q) { input.focus(); return; }
-    clearTimeout(resetTimer);
-    pill.classList.remove("clearing");
-
     const s = SPORTS[sport];
     const idx = findMatch(s, q);
     const first = results.hidden;
     answer = { idx };
     shown = idx >= 0 ? idx : 0;
     if (idx >= 0) input.value = s.players[idx].name;
-    fit();
 
-    const to = idx >= 0 ? s.color : UNRANKED;
-    pill.style.setProperty("--from", prevPill || "var(--paper)");
-    pill.style.setProperty("--to", to);
-    prevPill = to;
-    pill.classList.add("answered");
-    bump(pill, "wipe");
-
+    composer.classList.toggle("done", idx >= 0);
+    send.classList.remove("ready");
+    send.classList.add("answered");
+    send.classList.toggle("unranked", idx < 0);
     numEl.textContent = idx >= 0 ? String(idx + 1) : "5+";
-    badge.setAttribute("aria-label", idx >= 0 ? "Rank " + (idx + 1) + " of 5" : "Not in the top 5");
+    send.setAttribute("aria-label", idx >= 0 ? "Rank " + (idx + 1) + " of 5" : "Not in the top 5");
+    bump(send, "pop");
+
+    hint.textContent = "Try another name";
     verdictEl.textContent = idx === 0 ? "Same pick as ours."
       : idx > 0 ? "In our top 5, but not our top pick."
       : "Not in our top 5.";
     bump(verdictEl, "show");
 
-    results.style.setProperty("--d", first ? "0.55s" : "0.1s");
+    results.style.setProperty("--d", first ? "0.35s" : "0.05s");
     renderRanking();
     renderProfile();
     results.hidden = false;
-    centerIn(ranking, rows[shown].li, false);
+    stage.classList.add("answered");
     if (!finePointer) input.blur();
   }
 
+  input.addEventListener("input", () => {
+    send.classList.toggle("ready", input.value.trim().length > 0);
+  });
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") { e.preventDefault(); submit(); }
   });
-  badge.addEventListener("click", submit);
+  send.addEventListener("click", submit);
 
   function renderRanking() {
     const s = SPORTS[sport];
@@ -1072,11 +972,10 @@
       b.type = "button";
       b.className = "row";
       const r = document.createElement("span");
-      r.className = "rank";
+      r.className = "rk";
       r.textContent = String(i + 1);
       const n = document.createElement("span");
-      n.className = "rname";
-      setWords(n, p.name);
+      n.textContent = p.name;
       b.append(r, n);
       if (answer && answer.idx === i) {
         b.setAttribute("data-mine", "");
@@ -1104,7 +1003,7 @@
     const head = document.createElement("div");
     head.className = "head";
     const r = document.createElement("span");
-    r.className = "rank";
+    r.className = "rk";
     r.textContent = String(shown + 1);
     const h = document.createElement("h2");
     setWords(h, p.name);
@@ -1132,7 +1031,6 @@
     results.style.setProperty("--d", "0s");
     markShown();
     renderProfile();
-    centerIn(ranking, rows[i].li, true);
   }
 
   selectSport(0, true);

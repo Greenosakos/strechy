@@ -1,34 +1,1141 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>strechy-cihlar.cz</title>
-  <style>
-    * {
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The GOAT: who is the greatest of all time?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+  /* lets the accent colour glide between sports */
+  @property --accent { syntax: "<color>"; inherits: true; initial-value: #C2410C; }
+
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+
+    --paper: #F4F5F8;
+    --ink: #13172B;
+    --muted: #586078;
+    --line: #D3D7E2;
+    --accent: #C2410C;
+    --tint: var(--line);
+    --glow: transparent;
+    --bg-op: 0.16;
+    --pad: clamp(20px, 5vw, 48px);
+    --nav-h: 62px;
+    --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --spring: cubic-bezier(0.2, 1.6, 0.4, 1);
+    --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+    --text: "Source Serif 4", Georgia, "Times New Roman", serif;
+    color-scheme: light;
+    transition: --accent 0.6s ease;
+  }
+  @supports (background: color-mix(in srgb, red, blue)) {
+    :root {
+      --tint: color-mix(in srgb, var(--accent) 12%, transparent);
+      --glow: color-mix(in srgb, var(--accent) 13%, transparent);
+    }
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0E1118;
+      --ink: #F2F4FA;
+      --muted: #A6ADC2;
+      --line: #2B3040;
+      --bg-op: 0.24;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0E1118;
+    --ink: #F2F4FA;
+    --muted: #A6ADC2;
+    --line: #2B3040;
+    --bg-op: 0.24;
+    color-scheme: dark;
+  }
+
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); scroll-behavior: smooth; }
+  *, *::before, *::after { box-sizing: inherit; }
+  [hidden] { display: none !important; }
+  button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--text);
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* All sizes below follow the width of this column (cqi), so the proportions
+     hold on a phone, a tablet and a wide desktop alike. */
+  main {
+    position: relative;
+    z-index: 1;
+    container-type: inline-size;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding-top: clamp(24px, 5vw, 60px);
+    padding-right: max(var(--pad), env(safe-area-inset-right, 0px));
+    padding-left: max(var(--pad), env(safe-area-inset-left, 0px));
+    padding-bottom: calc(var(--nav-h) + 10px + env(safe-area-inset-bottom, 0px) + 56px);
+  }
+
+  /* motion */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.4) rotate(-18deg); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes noun {
+    from { opacity: 0; transform: translateY(0.35em); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes wipe {
+    from { background-position: 100% 0; }
+    to   { background-position: 0 0; }
+  }
+  .enter { animation: rise 0.7s calc(var(--i, 0) * 90ms) var(--ease) backwards; }
+
+  .lead {
+    margin: 0;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(1.1rem, 2.4vw, 1.5rem);
+    font-size: clamp(1.1rem, 3.2cqi, 1.5rem);
+    color: var(--muted);
+  }
+
+  h1 {
+    margin: 0.2em 0 0.55em;
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(2.3rem, 7vw, 4.8rem);
+    font-size: clamp(2.3rem, 7.6cqi, 4.8rem);
+    line-height: 1.02;
+    letter-spacing: -0.005em;
+    text-wrap: balance;
+  }
+  #noun { display: inline-block; }
+  #noun.swap { animation: noun 0.5s var(--ease) backwards; }
+
+  /* The pill from the sketch: you type a name, it shows where that name ranks */
+  .pill {
+    --from: var(--paper);
+    --to: #C2410C;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    min-height: clamp(84px, 16vw, 168px);
+    min-height: clamp(84px, 17cqi, 168px);
+    padding: 0 clamp(14px, 3vw, 30px) 0 clamp(24px, 5vw, 64px);
+    padding: 0 clamp(14px, 3cqi, 30px) 0 clamp(24px, 6cqi, 64px);
+    border: clamp(3px, 0.5vw, 4px) solid var(--ink);
+    border-radius: 999px;
+    color: var(--ink);
+    background: transparent;
+    box-shadow: 0 0 0 0 transparent;
+    transition: border-color 0.3s, box-shadow 0.3s var(--ease);
+  }
+  .pill:focus-within { box-shadow: 0 0 0 4px var(--paper), 0 0 0 7px var(--accent); }
+
+  .pill.answered {
+    border-color: transparent;
+    color: #fff;
+    background: linear-gradient(90deg, var(--to) 0 50%, var(--from) 50% 100%);
+    background-size: 200% 100%;
+    background-position: 0 0;
+    background-origin: border-box;
+    transition: border-color 0.3s, box-shadow 0.3s var(--ease), color 0.2s 0.3s;
+  }
+  .pill.clearing {
+    color: var(--ink);
+    transition: border-color 0.3s, box-shadow 0.3s var(--ease), color 0.25s 0.25s;
+  }
+  .pill.wipe { animation: wipe 0.7s cubic-bezier(0.7, 0, 0.2, 1) both; }
+  .pill.wipe .rank .num { animation: pop 0.5s 0.45s var(--spring) both; }
+
+  .pill input {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 0.08em 0;
+    border: 0;
+    outline: 0;
+    border-radius: 0;
+    background: none;
+    color: inherit;
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: clamp(2rem, 8.6vw, 6.6rem);
+    font-size: clamp(2rem, 10cqi, 6.6rem);
+    line-height: 1.1;
+    caret-color: currentColor;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .pill input::placeholder { color: var(--muted); opacity: 1; font-weight: 700; }
+
+  .rank {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: clamp(52px, 9vw, 96px);
+    width: clamp(52px, 10cqi, 96px);
+    aspect-ratio: 1;
+    padding: 0;
+    border: clamp(3px, 0.6vw, 5px) solid currentColor;
+    border-radius: 50%;
+    background: none;
+    color: inherit;
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(1.6rem, 5vw, 3.4rem);
+    font-size: clamp(1.7rem, 5.6cqi, 3.4rem);
+    line-height: 1;
+  }
+  button.rank { cursor: pointer; transition: background-color 0.25s, color 0.25s, transform 0.3s var(--spring); }
+  button.rank:active { transform: scale(0.92); }
+  .pill:not(.answered) button.rank:hover { background: var(--ink); color: var(--paper); transform: scale(1.08); }
+  button.rank:focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }
+
+  .verdict { margin: 1rem 0 0; font-size: 1.15rem; color: var(--muted); }
+  .verdict.show { animation: rise 0.45s 0.4s var(--ease) backwards; }
+
+  /* results: chips on top for phones, vertical list beside the profile on wide screens */
+  .detail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+    margin-top: clamp(24px, 5vw, 44px);
+  }
+  .side { order: -1; min-width: 0; }
+
+  .list-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin: 0 0 0.5rem;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--muted);
+  }
+  .ranking {
+    position: relative;
+    display: flex;
+    gap: 8px;
+    margin: 0 calc(var(--pad) * -1);
+    padding: 4px var(--pad) 10px;
+    list-style: none;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: var(--pad);
+    scrollbar-width: none;
+  }
+  .ranking::-webkit-scrollbar { display: none; }
+  .ranking li {
+    flex: none;
+    scroll-snap-align: center;
+    animation: rise 0.5s calc(var(--d, 0s) + var(--i, 0) * 70ms) var(--ease) backwards;
+  }
+
+  .row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 16px 7px 7px;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: var(--paper);
+    color: var(--ink);
+    font: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.3s, border-color 0.3s, color 0.3s, transform 0.3s var(--spring);
+  }
+  .row:active { transform: scale(0.96); }
+  .row .rank { width: 32px; border-width: 2px; font-size: 1.05rem; transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
+  .row .rname { font-family: var(--display); font-weight: 800; font-size: 1.2rem; line-height: 1.1; }
+  .row[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .row[data-mine]::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .row[aria-current="true"][data-mine]::after { background: #fff; }
+  .row:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .mine {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .profile { scroll-margin-top: 16px; min-width: 0; }
+  .head { display: flex; align-items: center; gap: 16px; margin: 0 0 1.1rem; animation: rise 0.45s var(--d, 0s) var(--ease) backwards; }
+  .head h2 {
+    margin: 0;
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-size: clamp(2rem, 8cqi, 3.4rem);
+    line-height: 1;
+    text-wrap: balance;
+    hyphens: manual;
+  }
+  .head .rank {
+    width: 52px;
+    border-width: 3px;
+    font-size: 1.6rem;
+    animation: pop 0.5s calc(var(--d, 0s) + 0.05s) var(--spring) backwards;
+  }
+  .why {
+    margin: 0 0 1.1rem;
+    max-width: 34ch;
+    font-size: clamp(1.3rem, 2.5vw, 1.7rem);
+    font-size: clamp(1.3rem, 4.4cqi, 1.7rem);
+    line-height: 1.3;
+    font-weight: 600;
+    text-wrap: pretty;
+    animation: rise 0.45s calc(var(--d, 0s) + 0.07s) var(--ease) backwards;
+  }
+  .facts { margin: 0; padding: 0; list-style: none; max-width: 56ch; }
+  .facts li {
+    text-wrap: pretty;
+    hyphens: manual;
+    padding: 0.65em 0;
+    border-top: 1px solid var(--line);
+    animation: rise 0.45s calc(var(--d, 0s) + 0.14s + var(--i, 0) * 70ms) var(--ease) backwards;
+  }
+  .facts li:last-child { border-bottom: 1px solid var(--line); }
+
+  .note {
+    margin: 2.2rem 0 0;
+    font-size: 0.875rem;
+    color: var(--muted);
+    animation: rise 0.5s calc(var(--d, 0s) + 0.5s) var(--ease) backwards;
+  }
+
+  @media (min-width: 820px) {
+    .detail { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: clamp(32px, 5vw, 56px); align-items: start; }
+    .side { order: 0; }
+    .list-title { margin-bottom: 0.6rem; }
+    .ranking {
+      display: grid;
+      gap: 6px;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
+      overflow: visible;
     }
- 
-    html, body {
+    .row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
       width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
+      padding: 10px 16px 10px 14px;
+      border: 0;
+      border-radius: 18px;
+      background: none;
+      text-align: left;
+      white-space: normal;
+      gap: 14px;
     }
- 
-    img {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
+    .row .rank { width: 40px; font-size: 1.2rem; }
+    .row .rname { font-size: clamp(1.35rem, 2.8cqi, 1.65rem); line-height: 1.05; text-wrap: balance; min-width: 0; }
+    .row[aria-current="true"] {
+      background: var(--tint);
+      color: var(--ink);
+      box-shadow: inset 4px 0 0 var(--accent);
     }
-  </style>
+    .row[aria-current="true"] .rank { background: var(--accent); border-color: var(--accent); color: #fff; }
+  }
+  @media (min-width: 820px) and (hover: hover) {
+    .row:hover { background: var(--tint); transform: translateX(5px); }
+    .row:active { transform: translateX(2px) scale(0.99); }
+  }
+
+  /* Sport dock: floating, borderless, items grow under the pointer */
+  .dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    z-index: 5;
+    width: fit-content;
+    max-width: calc(100% - 20px);
+    margin: 0 auto;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--paper);
+    box-shadow: 0 10px 30px rgba(10, 14, 30, 0.14);
+  }
+  @supports (background: color-mix(in srgb, red, blue)) {
+    .dock {
+      background: color-mix(in srgb, var(--paper) 82%, transparent);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+    }
+  }
+  .tablist {
+    position: relative;
+    display: flex;
+    gap: 2px;
+    padding: 8px 18px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    border-radius: inherit;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+  }
+  .tablist::-webkit-scrollbar { display: none; }
+
+  .tab {
+    position: relative;
+    isolation: isolate;
+    flex: none;
+    height: 44px;
+    padding: 0 clamp(11px, 2.6vw, 18px);
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--muted);
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(1.05rem, 3.4vw, 1.25rem);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: transform 0.3s var(--spring), color 0.25s;
+  }
+  .tab::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--accent);
+    opacity: 0;
+    transform: scale(0.55);
+    transition: opacity 0.25s, transform 0.4s var(--spring);
+  }
+  .tab[aria-selected="true"] { color: #fff; }
+  .tab[aria-selected="true"]::before { opacity: 1; transform: none; }
+  .tab:active { transform: scale(0.94); }
+  .tab:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+
+  @media (hover: hover) {
+    .tab:hover { transform: scale(1.28); color: var(--ink); }
+    .tab[aria-selected="true"]:hover { color: #fff; }
+    .tab:hover + .tab,
+    .tab:has(+ .tab:hover) { transform: scale(1.12); }
+  }
+
+  .nb { white-space: nowrap; }
+  .legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--text);
+    font-weight: 400;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .legend i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+  /* Ambient background: one slow, low-contrast scene per sport */
+  .ambient { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; contain: strict; }
+  .glow {
+    position: absolute;
+    inset: -20%;
+    background:
+      radial-gradient(42% 42% at 80% 88%, var(--glow), transparent 70%),
+      radial-gradient(38% 38% at 8% 6%, var(--glow), transparent 70%);
+    animation: glow 48s ease-in-out infinite alternate;
+  }
+  @keyframes glow { to { transform: translate3d(3%, -2%, 0) scale(1.06); } }
+
+  .scene {
+    position: absolute;
+    right: -60vmax;
+    bottom: -60vmax;
+    width: 170vmax;
+    height: 170vmax;
+    opacity: 0;
+    transition: opacity 1.4s ease;
+    fill: none;
+    stroke: var(--c);
+    stroke-width: 0.8;
+    stroke-opacity: var(--bg-op);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .scene.on { opacity: 1; }
+  .scene:not(.on) * { animation-play-state: paused; }
+
+  .spin, .breathe, .drift, .ripple { transform-box: view-box; transform-origin: 50% 50%; }
+  .pulse { transform-box: fill-box; transform-origin: 50% 50%; }
+
+  .spin { animation: spin var(--t, 240s) linear infinite; }
+  .spin.rv { animation-direction: reverse; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .drift { animation: drift 70s ease-in-out infinite alternate; }
+  @keyframes drift { to { transform: translate(26px, -18px); } }
+  .breathe { animation: breathe 16s ease-in-out infinite alternate; }
+  @keyframes breathe { to { transform: scale(1.045); } }
+  .yard { animation: yard 38s linear infinite; }
+  @keyframes yard { to { transform: translateY(90px); } }
+
+  .ripple { opacity: 0; animation: ripple 9s var(--d, 0s) ease-out infinite; }
+  @keyframes ripple {
+    0%   { transform: scale(0.45); opacity: 0; }
+    12%  { opacity: 1; }
+    100% { transform: scale(2.4); opacity: 0; }
+  }
+  .flow { animation: dash var(--t, 44s) linear infinite; }
+  .flow.rv { animation-direction: reverse; }
+  @keyframes dash { to { stroke-dashoffset: -200; } }
+
+  .dot, .ball { stroke-opacity: calc(var(--bg-op) * 3.2); }
+  .dot { stroke-width: 5; animation: dot var(--t, 26s) linear infinite; }
+  @keyframes dot { to { stroke-dashoffset: -1000; } }
+  .ball { stroke-width: 8; animation: ball 7s ease-in-out infinite; }
+  @keyframes ball {
+    0%   { stroke-dashoffset: 0; opacity: 0; }
+    12%  { opacity: 1; }
+    86%  { opacity: 1; }
+    100% { stroke-dashoffset: -1000; opacity: 0; }
+  }
+  .node { fill: var(--c); fill-opacity: 0.35; stroke: none; }
+  .pulse { opacity: 0; animation: pulse 7s var(--d, 0s) ease-out infinite; }
+  @keyframes pulse {
+    0%   { transform: scale(1); opacity: 0.9; }
+    100% { transform: scale(3.4); opacity: 0; }
+  }
+  .streak { opacity: 0; animation: streak 34s var(--d, 0s) linear infinite; }
+  @keyframes streak {
+    0%   { opacity: 0; transform: translateX(0); }
+    15%  { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { opacity: 0; transform: translateX(-300px); }
+  }
+  .road { stroke-width: 26; stroke-opacity: calc(var(--bg-op) * 0.4); }
+  .faint { fill: var(--c); fill-opacity: 0.035; stroke: none; }
+  .scene[data-sport="rap"] { stroke-opacity: calc(var(--bg-op) * 0.38); }
+
+  /* short landscape screens */
+  @media (max-height: 520px) {
+    main { padding-top: 16px; }
+    .pill { min-height: 84px; }
+    .pill input { font-size: clamp(2rem, 6cqi, 3.6rem); }
+    h1 { font-size: clamp(1.8rem, 5cqi, 3rem); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; }
+    .tab:hover, .tab:hover + .tab, .tab:has(+ .tab:hover), .row:hover { transform: none !important; }
+  }
+</style>
 </head>
 <body>
+  <div class="ambient" id="ambient" aria-hidden="true"><div class="glow"></div></div>
 
+  <main>
+    <p class="lead enter" style="--i:0">The GOAT is</p>
+    <h1 class="enter" style="--i:1">Who is the greatest <span id="noun">basketball player</span> of all time?</h1>
+
+    <div class="pill-wrap enter" style="--i:2">
+      <div class="pill" id="pill">
+        <input id="answer" type="text" placeholder="Type a name…" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="go" aria-label="Your answer">
+        <button class="rank" id="go" type="button" aria-label="Show where this ranks"><span class="num" id="num">?</span></button>
+      </div>
+    </div>
+    <p class="verdict" id="verdict" aria-live="polite"></p>
+
+    <div class="results" id="results" hidden>
+      <div class="detail">
+        <div class="side">
+          <p class="list-title"><span id="listName"></span><span class="legend" id="legend" hidden><i></i>your answer</span></p>
+          <ol class="ranking" id="ranking"></ol>
+        </div>
+        <article class="profile" id="profile"></article>
+      </div>
+      <p class="note">Picks are opinions. Stats as of mid-2026.</p>
+    </div>
+  </main>
+
+  <nav class="dock enter" style="--i:4" aria-label="Choose a sport">
+    <div class="tablist" id="tablist" role="tablist"></div>
+  </nav>
+
+<script>
+  const SPORTS = [
+    {
+      id: "basketball", tab: "Basketball", noun: "basketball player", color: "#C2410C",
+      players: [
+        { name: "Michael Jordan", aka: ["mj", "air jordan", "his airness"],
+          why: "He made scoring look effortless and never lost on the biggest stage.",
+          facts: ["30.1 points per game, the highest career average in NBA history", "5 MVP awards and 10 scoring titles", "6–0 in the NBA Finals, with 6 Finals MVPs"] },
+        { name: "LeBron James", aka: ["king james", "bron", "lbj"],
+          why: "Two decades at an elite level, and the scoring record to show for it.",
+          facts: ["The NBA’s all-time leading scorer, past 40,000 career points", "4 championships with 3 different teams", "4 MVP awards and 4 Finals MVPs"] },
+        { name: "Kareem Abdul-Jabbar", aka: ["kareem", "lew alcindor", "alcindor"],
+          why: "Nobody won more MVPs, and his sky hook was close to unstoppable for two decades.",
+          facts: ["6 MVP awards, the most ever", "6 championships", "38,387 career points, the NBA record for almost 39 years"] },
+        { name: "Bill Russell", aka: ["russell"],
+          why: "He won more than anyone in the history of the sport.",
+          facts: ["11 championships in 13 seasons with the Celtics", "5 MVP awards", "In 1966 became the first Black head coach in NBA history, and won two titles as player-coach"] },
+        { name: "Magic Johnson", aka: ["magic", "earvin johnson", "earvin"],
+          why: "A 6’9” point guard who made everyone around him better.",
+          facts: ["5 championships and 3 MVP awards with the Lakers", "Won Finals MVP as a rookie in 1980, playing center and scoring 42 in Game 6", "10,141 career assists, the NBA record when he retired"] }
+      ]
+    },
+    {
+      id: "football", tab: "Football", noun: "football player", color: "#8A5526",
+      players: [
+        { name: "Tom Brady", aka: ["tb12"],
+          why: "No quarterback has won this much, or for this long.",
+          facts: ["7 Super Bowl titles, more than any NFL franchise", "5 Super Bowl MVPs and 3 league MVPs", "23 seasons, retiring at 45"] },
+        { name: "Jerry Rice", aka: ["rice"],
+          why: "The best receiver ever, by a margin nobody has threatened.",
+          facts: ["22,895 receiving yards and 197 receiving touchdowns, both NFL records", "3 Super Bowl titles and the MVP of Super Bowl XXIII", "Played until he was 42"] },
+        { name: "Joe Montana", aka: ["joe cool", "montana"],
+          why: "Calm under pressure, and perfect on the biggest stage.",
+          facts: ["4 Super Bowl wins in 4 appearances", "3 Super Bowl MVPs", "Never threw an interception in a Super Bowl"] },
+        { name: "Jim Brown", aka: ["brown"],
+          why: "A runner nobody could stop, who walked away at his peak.",
+          facts: ["Led the NFL in rushing in 8 of his 9 seasons", "104.3 rushing yards per game, still the NFL record", "3 MVP awards, and retired in 1966 while still at the top of the league"] },
+        { name: "Peyton Manning", aka: ["peyton", "manning"],
+          why: "The most MVPs ever, and a quarterback who ran the offense himself.",
+          facts: ["5 MVP awards, the most ever", "2 Super Bowl wins with 2 different franchises", "55 touchdown passes in 2013, still the single-season record"] }
+      ]
+    },
+    {
+      id: "hockey", tab: "Hockey", noun: "hockey player", color: "#1668C2",
+      players: [
+        { name: "Wayne Gretzky", aka: ["the great one", "great one", "wayne"],
+          why: "He rewrote the record book, and most of the big records are still his.",
+          facts: ["2,857 career points, the NHL record", "1,963 assists, more than any other player has total points", "9 Hart Trophies as league MVP and 4 Stanley Cups with Edmonton in five years"] },
+        { name: "Bobby Orr", aka: ["orr"],
+          why: "He changed what a defenseman could do.",
+          facts: ["8 straight Norris Trophies as the league’s best defenseman", "The only defenseman to win the NHL scoring title, and he did it twice", "2 Stanley Cups, including the famous flying overtime goal in 1970"] },
+        { name: "Mario Lemieux", aka: ["lemieux", "super mario", "mario"],
+          why: "Arguably the most gifted player ever, even though injuries cut his career short.",
+          facts: ["6 NHL scoring titles", "1.88 points per game, second only to Gretzky", "2 Stanley Cups and 2 Conn Smythe Trophies"] },
+        { name: "Gordie Howe", aka: ["mr hockey", "howe", "gordie"],
+          why: "He was elite for longer than anyone else.",
+          facts: ["Played 26 NHL seasons, until he was 52", "6 Hart Trophies and 4 Stanley Cups", "The “Gordie Howe hat trick” (a goal, an assist and a fight) is named after him"] },
+        { name: "Alex Ovechkin", aka: ["ovi", "ovechkin", "alexander ovechkin"],
+          why: "The greatest goal scorer in NHL history, by the numbers.",
+          facts: ["Passed Gretzky’s career goals record in April 2025", "3 Hart Trophies", "Won the Stanley Cup and the Conn Smythe Trophy in 2018"] }
+      ]
+    },
+    {
+      id: "baseball", tab: "Baseball", noun: "baseball player", color: "#C42535",
+      players: [
+        { name: "Babe Ruth", aka: ["george herman ruth", "the bambino", "bambino", "sultan of swat"],
+          why: "He was the best hitter in baseball, and early on one of its best pitchers.",
+          facts: ["714 career home runs, a record until 1974", "1.164 career OPS, still the highest ever", "7 World Series titles and 94 wins as a pitcher"] },
+        { name: "Willie Mays", aka: ["say hey kid", "mays"],
+          why: "He did everything on a baseball field better than almost anyone.",
+          facts: ["660 home runs and 12 Gold Gloves", "24 All-Star selections, tied for the most ever", "“The Catch” in the 1954 World Series, one of the most famous plays in baseball"] },
+        { name: "Hank Aaron", aka: ["hammerin hank", "aaron", "henry aaron"],
+          why: "Twenty straight seasons with 20 or more home runs.",
+          facts: ["755 career home runs, the record until 2007", "2,297 RBIs, the most in MLB history", "3,771 hits, third most ever"] },
+        { name: "Ted Williams", aka: ["teddy ballgame", "williams"],
+          why: "Many consider him the best pure hitter who ever lived.",
+          facts: ["Hit .406 in 1941, the last player to hit .400", "Career on-base percentage of .482, the highest ever", "Missed almost five seasons to military service and still hit 521 home runs"] },
+        { name: "Shohei Ohtani", aka: ["ohtani", "sho time", "shotime"],
+          why: "A two-way star unlike anyone since Ruth.",
+          facts: ["First player with 50 home runs and 50 stolen bases in one season (2024)", "Unanimous MVP in 2021, 2023 and 2024", "Plays both ways, as a power hitter and a starting pitcher"] }
+      ]
+    },
+    {
+      id: "soccer", tab: "Soccer", noun: "soccer player", color: "#15803D",
+      players: [
+        { name: "Lionel Messi", aka: ["leo", "leo messi", "lionel", "la pulga"],
+          why: "The best player of his generation, who finally won the one trophy that was missing.",
+          facts: ["8 Ballon d’Or awards, the most ever", "2022 World Cup winner and the tournament’s best player", "4 Champions League titles and 2 Copa América titles"] },
+        { name: "Pelé", aka: ["pele", "edson arantes do nascimento"],
+          why: "A world champion at 17, and a three-time winner by 29.",
+          facts: ["The only player to win 3 World Cups: 1958, 1962 and 1970", "Scored twice in the 1958 final, aged 17", "77 goals in 92 games for Brazil"] },
+        { name: "Diego Maradona", aka: ["maradona", "diego", "el diego", "pibe de oro"],
+          why: "He won the 1986 World Cup almost single-handedly.",
+          facts: ["Won the Golden Ball at the 1986 World Cup", "Scored the “Hand of God” goal and the “Goal of the Century” in the same match", "Led Napoli to their first two Serie A titles"] },
+        { name: "Cristiano Ronaldo", aka: ["cr7", "ronaldo", "cristiano"],
+          why: "Two decades of elite scoring in England, Spain, Italy and Saudi Arabia.",
+          facts: ["The top scorer in men’s international football", "The Champions League’s all-time top scorer, with 5 titles", "5 Ballon d’Or awards and the Euro 2016 title"] },
+        { name: "Johan Cruyff", aka: ["cruyff", "cruijff", "johan"],
+          why: "He changed how the game is played, first as a player and later as a coach.",
+          facts: ["3 Ballon d’Or awards (1971, 1973, 1974)", "3 European Cups in a row with Ajax", "Led the Netherlands to the 1974 World Cup final"] }
+      ]
+    },
+    {
+      id: "f1", tab: "F1", noun: "F1 driver", color: "#5B6577",
+      players: [
+        { name: "Lewis Hamilton", aka: ["lewis", "hamilton"],
+          why: "The record book is his: more wins, poles and podiums than any driver.",
+          facts: ["7 world championships, tied with Schumacher for the most", "105 Grand Prix wins and 104 pole positions, both records", "Won at least one race in each of his first 15 seasons"] },
+        { name: "Michael Schumacher", aka: ["schumi", "schumacher", "michael"],
+          why: "He rebuilt Ferrari into a winning team and raised the sport’s standard for preparation.",
+          facts: ["7 world championships, including five in a row with Ferrari", "91 Grand Prix wins, a record until Hamilton", "Won his first two titles with Benetton in 1994 and 1995"] },
+        { name: "Ayrton Senna", aka: ["senna", "ayrton"],
+          why: "Raw speed that other drivers still measure themselves against.",
+          facts: ["3 world championships: 1988, 1990 and 1991", "65 pole positions, a record until Schumacher passed it", "6 wins at Monaco, a record"] },
+        { name: "Juan Manuel Fangio", aka: ["fangio", "juan fangio"],
+          why: "He won in the most dangerous era of the sport, and he won almost half the time.",
+          facts: ["5 world championships, with 4 different teams", "24 wins in 51 races, a win rate of about 47%", "Held the record for most titles for 46 years"] },
+        { name: "Max Verstappen", aka: ["max", "verstappen"],
+          why: "Four straight titles, including the most dominant single season in F1 history.",
+          facts: ["4 world championships in a row, from 2021 to 2024", "19 wins in the 2023 season, a record", "The youngest Grand Prix winner ever, at 18"] }
+      ]
+    },
+    {
+      id: "rap", tab: "Rap", noun: "rapper", color: "#8B33D9",
+      players: [
+        { name: "Jay-Z", aka: ["jayz", "shawn carter", "hov", "jigga"],
+          why: "Three decades at the top, with a catalogue that kept evolving.",
+          facts: ["14 No. 1 albums on the Billboard 200", "First rapper inducted into the Songwriters Hall of Fame, in 2017", "Debut album Reasonable Doubt (1996) is still ranked among the best rap albums ever"] },
+        { name: "Kendrick Lamar", aka: ["kendrick", "kdot", "k dot"],
+          why: "Technically brilliant, with albums built like novels.",
+          facts: ["Won the 2018 Pulitzer Prize for Music for DAMN., the first rapper to do so", "Won Record of the Year and Song of the Year at the 2025 Grammys for “Not Like Us”", "Headlined the Super Bowl LIX halftime show in 2025"] },
+        { name: "Tupac Shakur", aka: ["2pac", "tupac", "pac", "makaveli"],
+          why: "Raw emotion and storytelling that made him a voice for a generation.",
+          facts: ["Inducted into the Rock & Roll Hall of Fame in 2017", "All Eyez on Me (1996) was one of the first rap double albums", "An estimated 75 million records sold worldwide"] },
+        { name: "The Notorious B.I.G.", aka: ["biggie", "biggie smalls", "big", "notorious big", "notorious", "christopher wallace"],
+          why: "Effortless flow and vivid storytelling on just two albums.",
+          facts: ["Ready to Die (1994) is regularly ranked among the best rap albums", "Life After Death (1997) is certified Diamond", "Inducted into the Rock & Roll Hall of Fame in 2020"] },
+        { name: "Eminem", aka: ["slim shady", "marshall mathers", "em"],
+          why: "Technical skill and speed that few rappers have matched.",
+          facts: ["Won the Oscar for Best Original Song for “Lose Yourself”, a first for a rapper", "The Marshall Mathers LP (2000) was the fastest-selling rap album ever at the time", "Inducted into the Rock & Roll Hall of Fame in 2022"] }
+      ]
+    },
+    {
+      id: "cricket", tab: "Cricket", noun: "cricketer", color: "#0F766E",
+      players: [
+        { name: "Don Bradman", aka: ["bradman", "the don", "don"],
+          why: "A Test batting average of 99.94. The next best, among regular batters, is about 62.",
+          facts: ["6,996 runs and 29 centuries in just 52 Tests", "Needed 4 runs in his last innings to average 100, and was out for a duck", "Scored 974 runs in the 1930 Ashes series, still a record for a series"] },
+        { name: "Sachin Tendulkar", aka: ["sachin", "tendulkar", "master blaster"],
+          why: "Longevity and consistency at the top level that no one else has matched.",
+          facts: ["100 international centuries, the most ever", "34,357 international runs, the most ever", "Debuted at 16 and won the 2011 World Cup at 37"] },
+        { name: "Garfield Sobers", aka: ["sobers", "gary sobers", "garry sobers"],
+          why: "The greatest all-rounder the game has seen.",
+          facts: ["8,032 Test runs and 235 Test wickets", "Scored 365 not out aged 21, a Test record for 36 years", "Hit six sixes in one over in 1968, the first player to do it in first-class cricket"] },
+        { name: "Shane Warne", aka: ["warne", "warnie"],
+          why: "He made leg-spin the most thrilling thing in cricket.",
+          facts: ["708 Test wickets, and the first bowler to reach 700", "The “Ball of the Century” to Mike Gatting in 1993", "Won the 1999 World Cup with Australia"] },
+        { name: "Muttiah Muralitharan", aka: ["murali", "muralitharan", "muttiah"],
+          why: "No bowler has taken more wickets in Test cricket.",
+          facts: ["800 Test wickets, the record", "67 five-wicket hauls in Tests, the most ever", "Took his 800th wicket in his final Test, in 2010"] }
+      ]
+    }
+  ];
+
+  const UNRANKED = "#56607A";
+
+  /* matching */
+  const norm = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  SPORTS.forEach((s) => s.players.forEach((p) => {
+    const set = new Set();
+    [p.name, ...(p.aka || [])].forEach((a) => norm(a).split(" ").filter(Boolean).forEach((t) => set.add(t)));
+    p._t = [...set];
+  }));
+  function findMatch(sport, query) {
+    const q = norm(query);
+    if (q.length < 2) return -1;
+    const qt = q.split(" ").filter(Boolean);
+    let best = -1, bestScore = 0;
+    sport.players.forEach((p, i) => {
+      let score = 0, ok = true;
+      for (const t of qt) {
+        if (p._t.includes(t) && (t.length > 1 || qt.length > 1)) score += 2;
+        else if (t.length >= 3 && p._t.some((x) => x.startsWith(t))) score += 1;
+        else { ok = false; break; }
+      }
+      if (ok && score > bestScore) { best = i; bestScore = score; }
+    });
+    return best;
+  }
+
+  /* elements */
+  const $ = (s) => document.querySelector(s);
+  const root = document.documentElement;
+  const pill = $("#pill"), input = $("#answer"), badge = $("#go"), numEl = $("#num");
+  const nounEl = $("#noun"), verdictEl = $("#verdict"), results = $("#results");
+  const profile = $("#profile"), ranking = $("#ranking"), listName = $("#listName"), legend = $("#legend");
+  const ambient = $("#ambient");
+  const tablist = $("#tablist");
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const finePointer = window.matchMedia("(pointer: fine)").matches;
+
+  /* helpers */
+  function bump(el, cls) {
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+  }
+  function centerIn(box, el, smooth) {
+    if (box.scrollWidth <= box.clientWidth + 1) return;
+    const left = el.offsetLeft - (box.clientWidth - el.offsetWidth) / 2;
+    box.scrollTo({ left, behavior: smooth && !reduced ? "smooth" : "auto" });
+  }
+
+  /* keep long names inside the pill: measure the text, then scale the font down to fit */
+  const measure = document.createElement("canvas").getContext("2d");
+  function fit() {
+    input.style.fontSize = "";
+    const text = input.value;
+    if (!text) return;
+    const cs = getComputedStyle(input);
+    const base = parseFloat(cs.fontSize);
+    measure.font = cs.fontWeight + " " + base + "px " + cs.fontFamily;
+    const w = measure.measureText(text).width;
+    const avail = input.clientWidth - 2;
+    if (w > avail) input.style.fontSize = Math.max((base * avail) / w * 0.98, 16) + "px";
+  }
+  input.addEventListener("input", fit);
+  window.addEventListener("resize", fit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+
+  /* words never break in the middle (Jay-Z, B.I.G., Abdul-Jabbar) */
+  function setWords(el, text) {
+    el.textContent = "";
+    const words = text.split(/\s+/);
+    words.forEach((w, i) => {
+      const span = document.createElement("span");
+      span.className = "nb";
+      span.textContent = w;
+      el.append(span);
+      if (i < words.length - 1) el.append(" ");
+    });
+  }
+
+  /* ambient scenes: abstract line art of each sport, drawn on a 1000 x 1000 grid */
+  const r1 = (n) => Math.round(n * 10) / 10;
+  const pol = (r, deg) => [r1(500 + r * Math.cos((deg * Math.PI) / 180)), r1(500 + r * Math.sin((deg * Math.PI) / 180))];
+  const rnd = (i) => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
+  function smoothClosed(pts) {
+    const n = pts.length;
+    let d = "M " + pts[0][0] + " " + pts[0][1];
+    for (let i = 0; i < n; i++) {
+      const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+      const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+      const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+      d += " C " + r1(c1[0]) + " " + r1(c1[1]) + ", " + r1(c2[0]) + " " + r1(c2[1]) + ", " + p2[0] + " " + p2[1];
+    }
+    return d + " Z";
+  }
+
+  const SCENES = {
+    basketball: () => `
+      <g class="spin" style="--t:240s">
+        <circle cx="500" cy="500" r="120"/>
+        <circle cx="500" cy="500" r="190" stroke-dasharray="2 9"/>
+        <path d="M 90 760 A 410 410 0 0 1 910 760 M 90 760 V 980 M 910 760 V 980"/>
+        <path d="M 400 980 V 590 H 600 V 980"/>
+        <circle cx="500" cy="590" r="100"/>
+        <path d="M 40 500 H 960"/>
+      </g>
+      <circle class="ripple" style="--d:0s" cx="500" cy="500" r="120"/>
+      <circle class="ripple" style="--d:-3s" cx="500" cy="500" r="120"/>
+      <circle class="ripple" style="--d:-6s" cx="500" cy="500" r="120"/>`,
+
+    football: () => {
+      let major = "", minor = "";
+      for (let y = -270; y <= 1350; y += 90) {
+        major += "M -400 " + y + " H 1400 ";
+        minor += "M -400 " + (y + 45) + " H 1400 ";
+      }
+      return `<g transform="rotate(-16 500 500)"><g class="yard">
+        <path d="${major}"/><path d="${minor}" stroke-dasharray="2 20"/>
+      </g></g>`;
+    },
+
+    hockey: () => `
+      <g class="drift">
+        <circle cx="500" cy="500" r="150"/>
+        <circle cx="500" cy="500" r="6"/>
+        <path d="M 500 20 V 980"/>
+        <path d="M 300 20 V 980 M 700 20 V 980" stroke-dasharray="14 10"/>
+        <circle cx="300" cy="250" r="70"/><circle cx="700" cy="250" r="70"/>
+        <circle cx="300" cy="750" r="70"/><circle cx="700" cy="750" r="70"/>
+      </g>
+      <path class="flow" style="--t:46s" stroke-dasharray="5 15" d="M -100 820 C 180 620, 380 940, 640 700 S 960 420, 1100 520"/>
+      <path class="flow" style="--t:58s" stroke-dasharray="5 15" d="M -100 640 C 200 460, 420 740, 700 520 S 980 280, 1100 340"/>
+      <path class="flow rv" style="--t:52s" stroke-dasharray="5 15" d="M -100 960 C 220 780, 460 1000, 780 820 S 1000 640, 1100 700"/>`,
+
+    baseball: () => `
+      <g class="breathe">
+        <path d="M 500 180 L 820 500 L 500 820 L 180 500 Z"/>
+        <path d="M 500 164 L 516 180 L 500 196 L 484 180 Z M 820 484 L 836 500 L 820 516 L 804 500 Z M 500 804 L 516 820 L 500 836 L 484 820 Z M 180 484 L 196 500 L 180 516 L 164 500 Z"/>
+        <circle cx="500" cy="500" r="26"/>
+        <path d="M 500 820 L -140 180 M 500 820 L 1140 180"/>
+        <path d="M 132 452 A 520 520 0 0 1 868 452"/>
+        <path class="dot" style="--t:30s" pathLength="1000" stroke-dasharray="0.1 999.9" d="M 500 180 L 820 500 L 500 820 L 180 500 Z"/>
+      </g>`,
+
+    soccer: () => {
+      const N = [[170, 720], [360, 440], [560, 640], [760, 360], [840, 760], [540, 190]];
+      const E = [[0, 1], [1, 2], [2, 3], [3, 4], [2, 4], [1, 5], [5, 3]];
+      const lines = E.map(([a, b], i) =>
+        `<path class="flow${i % 2 ? " rv" : ""}" style="--t:${40 + i * 6}s" stroke-dasharray="5 15" d="M ${N[a][0]} ${N[a][1]} L ${N[b][0]} ${N[b][1]}"/>`).join("");
+      const nodes = N.map((p, i) =>
+        `<circle class="node" cx="${p[0]}" cy="${p[1]}" r="9"/><circle class="pulse" style="--d:${r1(-i * 1.1)}s" cx="${p[0]}" cy="${p[1]}" r="9"/>`).join("");
+      return `<circle cx="500" cy="500" r="160"/><circle cx="500" cy="500" r="5"/><path d="M 500 -40 V 1040"/>${lines}${nodes}`;
+    },
+
+    f1: () => {
+      const track = smoothClosed([[170, 640], [210, 470], [340, 400], [470, 470], [590, 390], [690, 250], [830, 260],
+        [880, 400], [780, 500], [820, 640], [760, 790], [600, 810], [470, 720], [330, 800], [210, 780]]);
+      let streaks = "";
+      for (let i = 0; i < 6; i++) {
+        const x = r1(380 + rnd(i) * 520), y = r1(120 + rnd(i + 9) * 760), len = r1(90 + rnd(i + 21) * 150);
+        streaks += `<path class="streak" style="--d:${-i * 5.5}s" d="M ${x} ${y} h ${len}"/>`;
+      }
+      return `<path class="road" d="${track}"/>
+        <path d="${track}" stroke-dasharray="5 15"/>
+        <path class="dot" style="--t:24s" pathLength="1000" stroke-dasharray="0.1 999.9" d="${track}"/>
+        <path class="dot" style="--t:24s;animation-delay:-12s" pathLength="1000" stroke-dasharray="0.1 999.9" d="${track}"/>
+        ${streaks}`;
+    },
+
+    rap: () => {
+      const A = [], B = [], C = [];
+      for (let i = 0, r = 76; r <= 470; r += 18, i++) {
+        const circ = 2 * Math.PI * r;
+        if (i % 3 === 2) { C.push(`<circle cx="500" cy="500" r="${r}" opacity=".6"/>`); continue; }
+        const a = circ * (0.12 + rnd(i) * 0.3), b = circ * (0.05 + rnd(i + 40) * 0.12);
+        const g1 = (circ - a - b) * (0.3 + rnd(i + 80) * 0.4);
+        const ring = `<circle cx="500" cy="500" r="${r}" stroke-dasharray="${r1(a)} ${r1(g1)} ${r1(b)} ${r1(circ - a - b - g1)}"/>`;
+        (i % 3 === 0 ? A : B).push(ring);
+      }
+      const wedge = (from, to) => `M 500 500 L ${pol(470, from).join(" ")} A 470 470 0 0 1 ${pol(470, to).join(" ")} Z`;
+      return `${C.join("")}
+        <g class="spin" style="--t:140s">${A.join("")}
+          <path class="faint" d="${wedge(-20, 6)}"/><path class="faint" d="${wedge(160, 186)}"/>
+          <path d="M 500 436 V 452"/>
+        </g>
+        <g class="spin rv" style="--t:190s">${B.join("")}</g>
+        <circle class="faint" cx="500" cy="500" r="64"/><circle cx="500" cy="500" r="6"/>`;
+    },
+
+    cricket: () => `
+      <g class="spin" style="--t:300s">
+        <ellipse cx="500" cy="500" rx="470" ry="400"/>
+        <ellipse cx="500" cy="500" rx="300" ry="255" stroke-dasharray="3 10"/>
+      </g>
+      <rect x="468" y="330" width="64" height="340"/>
+      <path d="M 440 375 H 560 M 440 625 H 560"/>
+      <path d="M 490 330 V 300 M 500 330 V 300 M 510 330 V 300 M 490 670 V 700 M 500 670 V 700 M 510 670 V 700"/>
+      <path d="M 500 90 C 590 240, 410 380, 500 640" stroke-dasharray="3 9"/>
+      <path class="ball" pathLength="1000" stroke-dasharray="0.1 999.9" d="M 500 90 C 590 240, 410 380, 500 640"/>`
+  };
+
+  SPORTS.forEach((sp) => {
+    ambient.insertAdjacentHTML("beforeend",
+      `<svg class="scene" data-sport="${sp.id}" style="--c:${sp.color}" viewBox="0 0 1000 1000" aria-hidden="true">${SCENES[sp.id]()}</svg>`);
+  });
+  const scenes = [...ambient.querySelectorAll(".scene")];
+
+  /* state */
+  let sport = -1, answer = null, shown = 0, prevPill = null, rows = [], resetTimer = 0;
+
+  const tabs = SPORTS.map((s, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "tab";
+    b.id = "tab-" + s.id;
+    b.setAttribute("role", "tab");
+    b.textContent = s.tab;
+    b.addEventListener("click", () => selectSport(i, true));
+    b.addEventListener("keydown", (e) => {
+      const last = SPORTS.length - 1;
+      let to = null;
+      if (e.key === "ArrowRight") to = i === last ? 0 : i + 1;
+      else if (e.key === "ArrowLeft") to = i === 0 ? last : i - 1;
+      else if (e.key === "Home") to = 0;
+      else if (e.key === "End") to = last;
+      if (to !== null) { e.preventDefault(); selectSport(to, false); tabs[to].focus(); }
+    });
+    tablist.appendChild(b);
+    return b;
+  });
+
+  /* sweep the paper colour back over the pill, then drop to the outlined state */
+  function clearPill() {
+    clearTimeout(resetTimer);
+    if (!pill.classList.contains("answered")) return;
+    if (reduced) {
+      pill.classList.remove("answered", "wipe", "clearing");
+      return;
+    }
+    pill.style.setProperty("--from", prevPill || "var(--paper)");
+    pill.style.setProperty("--to", "var(--paper)");
+    pill.classList.add("clearing");
+    bump(pill, "wipe");
+    resetTimer = setTimeout(() => pill.classList.remove("answered", "wipe", "clearing"), 720);
+  }
+
+  function selectSport(i, focusInput) {
+    if (i === sport) return;
+    const s = SPORTS[i];
+    const swapping = sport !== -1;
+
+    clearPill();
+    sport = i; answer = null; shown = 0; prevPill = null;
+
+    root.style.setProperty("--accent", s.color);
+    nounEl.textContent = s.noun;
+    if (swapping) bump(nounEl, "swap");
+    input.value = "";
+    input.style.fontSize = "";
+    numEl.textContent = "?";
+    badge.setAttribute("aria-label", "Show where this ranks");
+    verdictEl.textContent = "";
+    verdictEl.classList.remove("show");
+    results.hidden = true;
+
+    tabs.forEach((t, k) => {
+      const on = k === i;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.tabIndex = on ? 0 : -1;
+    });
+    centerIn(tablist, tabs[i], swapping);
+    const showScene = () => scenes.forEach((el) => el.classList.toggle("on", el.dataset.sport === s.id));
+    if (swapping) showScene(); else requestAnimationFrame(() => requestAnimationFrame(showScene));
+    if (focusInput && finePointer) input.focus({ preventScroll: true });
+  }
+
+  function submit() {
+    const q = input.value.trim();
+    if (!q) { input.focus(); return; }
+    clearTimeout(resetTimer);
+    pill.classList.remove("clearing");
+
+    const s = SPORTS[sport];
+    const idx = findMatch(s, q);
+    const first = results.hidden;
+    answer = { idx };
+    shown = idx >= 0 ? idx : 0;
+    if (idx >= 0) input.value = s.players[idx].name;
+    fit();
+
+    const to = idx >= 0 ? s.color : UNRANKED;
+    pill.style.setProperty("--from", prevPill || "var(--paper)");
+    pill.style.setProperty("--to", to);
+    prevPill = to;
+    pill.classList.add("answered");
+    bump(pill, "wipe");
+
+    numEl.textContent = idx >= 0 ? String(idx + 1) : "5+";
+    badge.setAttribute("aria-label", idx >= 0 ? "Rank " + (idx + 1) + " of 5" : "Not in the top 5");
+    verdictEl.textContent = idx === 0 ? "Same pick as ours."
+      : idx > 0 ? "In our top 5, but not our top pick."
+      : "Not in our top 5.";
+    bump(verdictEl, "show");
+
+    results.style.setProperty("--d", first ? "0.55s" : "0.1s");
+    renderRanking();
+    renderProfile();
+    results.hidden = false;
+    centerIn(ranking, rows[shown].li, false);
+    if (!finePointer) input.blur();
+  }
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); submit(); }
+  });
+  badge.addEventListener("click", submit);
+
+  function renderRanking() {
+    const s = SPORTS[sport];
+    listName.textContent = "Our top 5 " + s.noun + "s";
+    legend.hidden = !(answer && answer.idx >= 0);
+    rows = s.players.map((p, i) => {
+      const li = document.createElement("li");
+      li.style.setProperty("--i", i);
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "row";
+      const r = document.createElement("span");
+      r.className = "rank";
+      r.textContent = String(i + 1);
+      const n = document.createElement("span");
+      n.className = "rname";
+      setWords(n, p.name);
+      b.append(r, n);
+      if (answer && answer.idx === i) {
+        b.setAttribute("data-mine", "");
+        const m = document.createElement("span");
+        m.className = "mine";
+        m.textContent = "your answer";
+        b.append(m);
+      }
+      b.addEventListener("click", () => pick(i));
+      li.appendChild(b);
+      return { li, b };
+    });
+    ranking.replaceChildren(...rows.map((x) => x.li));
+    markShown();
+  }
+
+  function markShown() {
+    rows.forEach((x, i) => x.b.setAttribute("aria-current", i === shown ? "true" : "false"));
+  }
+
+  /* children are rebuilt each time, so their entrance animations replay on every change */
+  function renderProfile() {
+    const p = SPORTS[sport].players[shown];
+
+    const head = document.createElement("div");
+    head.className = "head";
+    const r = document.createElement("span");
+    r.className = "rank";
+    r.textContent = String(shown + 1);
+    const h = document.createElement("h2");
+    setWords(h, p.name);
+    head.append(r, h);
+
+    const why = document.createElement("p");
+    why.className = "why";
+    why.textContent = p.why;
+
+    const ul = document.createElement("ul");
+    ul.className = "facts";
+    p.facts.forEach((f, k) => {
+      const li = document.createElement("li");
+      li.style.setProperty("--i", k);
+      li.textContent = f;
+      ul.appendChild(li);
+    });
+
+    profile.replaceChildren(head, why, ul);
+  }
+
+  function pick(i) {
+    if (i === shown) return;
+    shown = i;
+    results.style.setProperty("--d", "0s");
+    markShown();
+    renderProfile();
+    centerIn(ranking, rows[i].li, true);
+  }
+
+  selectSport(0, true);
+</script>
 </body>
 </html>

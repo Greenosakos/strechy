@@ -6,7 +6,7 @@
 <title>The GOAT: who is the greatest of all time?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500&display=swap" rel="stylesheet">
 <style>
   /* lets the accent colour glide between sports */
   @property --accent { syntax: "<color>"; inherits: true; initial-value: #C2410C; }
@@ -37,8 +37,8 @@
     --bg-op: 0.12;
     --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
     --spring: cubic-bezier(0.2, 1.6, 0.4, 1);
-    --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --sans: "Rubik", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --serif: var(--sans);
     color-scheme: light;
     transition: --accent 0.6s ease, --paper 0.9s ease, --card 0.9s ease, --ink 0.9s ease, --muted 0.9s ease,
       --border 0.9s ease, --hover 0.9s ease, --line 0.9s ease, --pop 0.9s ease;
@@ -94,7 +94,7 @@
     margin: 0;
     background: var(--paper);
     color: var(--ink);
-    font: 400 15px/1.55 var(--sans);
+    font: 500 15px/1.55 var(--sans);
     -webkit-font-smoothing: antialiased;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -130,7 +130,7 @@
   .intro { text-align: center; }
   h1 {
     margin: 0 0 1em;
-    font: 400 clamp(1.65rem, 4.4vw, 2.35rem) / 1.18 var(--serif);
+    font: 500 clamp(1.8rem, 5vw, 2.6rem) / 1.18 var(--sans);
     letter-spacing: -0.012em;
     text-wrap: balance;
   }
@@ -166,7 +166,7 @@
     outline: 0;
     background: none;
     color: var(--ink);
-    font: 400 16px/1.4 var(--sans);
+    font: 500 16px/1.4 var(--sans);
     -webkit-appearance: none;
     appearance: none;
   }
@@ -201,7 +201,7 @@
   .picker-btn:hover, .picker-btn[aria-expanded="true"] { background: var(--hover); }
   .picker-btn:focus-visible, .send:focus-visible, .row:focus-visible, .opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-  .picker-btn .muted { font-weight: 400; color: var(--muted); }
+  .picker-btn .muted { font-weight: 500; color: var(--muted); }
   .chev { flex: none; color: var(--muted); transition: transform 0.25s var(--ease); }
   .picker-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
 
@@ -235,7 +235,7 @@
     cursor: pointer;
     transition: background-color 0.15s;
   }
-  .opt .pl { margin-left: auto; font-weight: 400; color: var(--muted); }
+  .opt .pl { margin-left: auto; font-weight: 500; color: var(--muted); }
   .opt .check { flex: none; color: var(--accent); opacity: 0; transition: opacity 0.2s; }
   .opt[aria-selected="true"] { background: var(--hover); }
   .opt[aria-selected="true"] .check { opacity: 1; }
@@ -253,7 +253,7 @@
     background: var(--hover);
     color: var(--muted);
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1;
     cursor: pointer;
     transition: background-color 0.3s, color 0.3s, transform 0.3s var(--spring);
@@ -311,7 +311,7 @@
     border: 1.5px solid currentColor;
     border-radius: 50%;
     font-size: 11.5px;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1;
   }
   .row[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -326,7 +326,7 @@
   .head { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; animation: rise 0.45s var(--d, 0s) var(--ease) backwards; }
   .head h2 {
     margin: 0;
-    font: 400 clamp(1.5rem, 4vw, 1.9rem) / 1.15 var(--serif);
+    font: 500 clamp(1.5rem, 4vw, 1.9rem) / 1.15 var(--serif);
     letter-spacing: -0.01em;
     text-wrap: balance;
   }
@@ -339,14 +339,14 @@
     border: 1.5px solid var(--ink);
     border-radius: 50%;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1;
     animation: pop 0.5s calc(var(--d, 0s) + 0.05s) var(--spring) backwards;
   }
   .why {
     margin: 0 0 16px;
     max-width: 52ch;
-    font: 400 1.1rem / 1.5 var(--serif);
+    font: 500 1.1rem / 1.5 var(--serif);
     text-wrap: pretty;
     animation: rise 0.45s calc(var(--d, 0s) + 0.07s) var(--ease) backwards;
   }
@@ -559,7 +559,7 @@
 
   <main class="stage" id="stage">
     <header class="intro">
-      <h1 class="enter" style="--i:0">Who is the greatest <span id="noun">basketball player</span> of all time?</h1>
+      <h1 class="enter" style="--i:0">The <span id="noun">Basketball</span> GOAT is</h1>
     </header>
 
     <section class="composer enter" id="composer" style="--i:1">
@@ -1025,7 +1025,7 @@
     root.style.setProperty("--accent", s.color);
     if (VIDEO[s.id]) root.dataset.stage = "video"; else delete root.dataset.stage;
     setVideo(!!VIDEO[s.id]);
-    nounEl.textContent = s.noun;
+    nounEl.textContent = s.tab;
     if (swapping) bump(nounEl, "swap");
     pickerDot.style.background = s.color;
     pickerName.textContent = s.tab;

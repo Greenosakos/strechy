@@ -289,9 +289,9 @@
     position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    height: 34px;
-    padding: 0 11px 0 4px;
+    gap: 9px;
+    height: 44px;
+    padding: 0 12px 0 5px;
     border: 1px solid var(--border);
     border-radius: 999px;
     background: var(--card);
@@ -302,46 +302,100 @@
     cursor: pointer;
     transition: background-color 0.25s, border-color 0.25s, color 0.25s, transform 0.3s var(--spring);
   }
+  .row.guess { border-style: dashed; }
   .row:active { transform: scale(0.96); }
   .row .rk {
     display: grid;
     place-items: center;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border: 1.5px solid currentColor;
     border-radius: 50%;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 500;
     line-height: 1;
   }
+  .row .rk.none { border-style: dashed; opacity: 0.65; }
+  .mdot { flex: none; width: 6px; height: 6px; margin-right: -2px; border-radius: 50%; background: var(--accent); }
   .row[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .row[data-mine]::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-  .row[aria-current="true"][data-mine]::after { background: #fff; }
+  .row[aria-current="true"] .mdot { background: #fff; }
+  .row[aria-current="true"] .av { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9); }
   .mine { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   @media (hover: hover) {
     .row:not([aria-current="true"]):hover { background: var(--hover); }
   }
 
+  /* round head photos (Wikimedia Commons); initials show until the photo arrives */
+  .av {
+    flex: none;
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--hover);
+    color: var(--muted);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    transition: box-shadow 0.3s;
+  }
+  @supports (background: color-mix(in srgb, red, blue)) {
+    .av { background: color-mix(in srgb, var(--accent) 16%, var(--hover)); }
+  }
+  .av img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 18%;
+    animation: fade 0.5s var(--ease) both;
+  }
+  .av[data-state="loading"] { animation: av-pulse 1.3s ease-in-out infinite; }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes av-pulse { 50% { opacity: 0.5; } }
+  .av.lg { width: 64px; height: 64px; font-size: 18px; }
+  .avwrap {
+    position: relative;
+    flex: none;
+    width: 64px;
+    height: 64px;
+    animation: pop 0.5s calc(var(--d, 0s) + 0.05s) var(--spring) backwards;
+  }
+  .bdg {
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--paper);
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11.5px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
   .profile { margin-top: 28px; min-width: 0; }
-  .head { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; animation: rise 0.45s var(--d, 0s) var(--ease) backwards; }
+  .head { display: flex; align-items: center; gap: 16px; margin: 0 0 12px; animation: rise 0.45s var(--d, 0s) var(--ease) backwards; }
   .head h2 {
     margin: 0;
     font: 500 clamp(1.5rem, 4vw, 1.9rem) / 1.15 var(--serif);
     letter-spacing: -0.01em;
     text-wrap: balance;
   }
-  .head .rk {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    border: 1.5px solid var(--ink);
-    border-radius: 50%;
+  .sub {
+    margin: -2px 0 12px;
     font-size: 13px;
-    font-weight: 500;
-    line-height: 1;
-    animation: pop 0.5s calc(var(--d, 0s) + 0.05s) var(--spring) backwards;
+    color: var(--muted);
+    animation: rise 0.45s calc(var(--d, 0s) + 0.05s) var(--ease) backwards;
   }
   .why {
     margin: 0 0 16px;
@@ -586,7 +640,7 @@
       <p class="rankhead"><span id="listName"></span><span class="legend" id="legend" hidden><i></i>your answer</span></p>
       <ol class="ranking" id="ranking"></ol>
       <article class="profile" id="profile"></article>
-      <p class="note">Picks are opinions. Stats as of mid-2026.</p>
+      <p class="note">Picks are opinions. Stats as of mid-2026. Photos: Wikimedia Commons.</p>
     </div>
   </main>
 
@@ -945,7 +999,7 @@
   const scenes = [...ambient.querySelectorAll(".scene")];
 
   /* state */
-  let sport = -1, answer = null, shown = 0, rows = [];
+  let sport = -1, answer = null, shown = 0, rows = [], items = [], avatars = [], profileRefs = null, runId = 0;
 
   /* sport picker */
   const options = SPORTS.map((s, i) => {
@@ -1020,7 +1074,7 @@
     if (i === sport) return;
     const s = SPORTS[i];
     const swapping = sport !== -1;
-    sport = i; answer = null; shown = 0;
+    sport = i; answer = null; shown = 0; runId++; avatars = []; items = []; rows = []; profileRefs = null;
 
     root.style.setProperty("--accent", s.color);
     if (VIDEO[s.id]) root.dataset.stage = "video"; else delete root.dataset.stage;
@@ -1048,14 +1102,189 @@
     if (focusInput && finePointer) input.focus({ preventScroll: true });
   }
 
+  /* ---------- photos: Wikipedia lead image (hosted on Commons), else a Commons file search ---------- */
+  const WP = "https://en.wikipedia.org/w/api.php";
+  const WC = "https://commons.wikimedia.org/w/api.php";
+  const CTX = { basketball: "basketball player", football: "American football player", hockey: "ice hockey player", baseball: "baseball player", soccer: "footballer", f1: "Formula One driver", rap: "rapper", cricket: "cricketer" };
+  const memo = new Map();
+  const done = new Set();
+
+  function cacheGet(k) {
+    const kk = k.toLowerCase();
+    if (memo.has(kk)) return memo.get(kk);
+    try {
+      const v = localStorage.getItem("goat:photo1:" + kk);
+      if (v) { const o = JSON.parse(v); memo.set(kk, o); return o; }
+    } catch (e) { /* storage unavailable */ }
+    return null;
+  }
+  function cachePut(k, o) {
+    const kk = k.toLowerCase();
+    memo.set(kk, o);
+    try { localStorage.setItem("goat:photo1:" + kk, JSON.stringify(o)); } catch (e) { /* ignore */ }
+  }
+
+  async function api(base, params) {
+    const u = new URL(base);
+    const all = Object.assign({ action: "query", format: "json", formatversion: "2", origin: "*" }, params);
+    Object.keys(all).forEach((k) => u.searchParams.set(k, all[k]));
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 8000);
+    try {
+      const r = await fetch(u.toString(), { signal: ctl.signal });
+      if (!r.ok) throw new Error("http " + r.status);
+      return await r.json();
+    } finally { clearTimeout(t); }
+  }
+  const byIndex = (a, b) => (a.index || 0) - (b.index || 0);
+  const wikiInfo = (p) => ({
+    src: p.thumbnail.source,
+    page: p.pageimage ? "https://en.wikipedia.org/wiki/File:" + encodeURIComponent(p.pageimage) : "",
+    title: p.title,
+    desc: p.description || ""
+  });
+  const cleanTitle = (t) => t.replace(/\s*\(.*?\)\s*$/, "");
+
+  /* all five players in a single request, by exact article title */
+  async function exactBatch(names) {
+    const need = names.filter((n) => !cacheGet(n));
+    if (!need.length) return;
+    const d = await api(WP, { titles: need.join("|"), redirects: "1", prop: "pageimages|description", piprop: "thumbnail|name", pithumbsize: "256" });
+    const q = d.query || {};
+    const norm = new Map((q.normalized || []).map((x) => [x.from, x.to]));
+    const red = new Map((q.redirects || []).map((x) => [x.from, x.to]));
+    const pages = new Map((q.pages || []).map((p) => [p.title, p]));
+    need.forEach((n) => {
+      let t = norm.get(n) || n;
+      t = red.get(t) || t;
+      const p = pages.get(t);
+      if (p && p.thumbnail) cachePut(n, wikiInfo(p));
+    });
+  }
+  /* search with the sport as context, so "jordan" finds the basketball player */
+  async function searchPhoto(term) {
+    const d = await api(WP, { generator: "search", gsrsearch: term, gsrlimit: "1", gsrnamespace: "0", prop: "pageimages|description", piprop: "thumbnail|name", pithumbsize: "256" });
+    const p = ((d.query && d.query.pages) || []).sort(byIndex)[0];
+    return p && p.thumbnail ? wikiInfo(p) : null;
+  }
+  /* last resort: first usable image found on Commons for the typed name */
+  async function commonsPhoto(name) {
+    const d = await api(WC, { generator: "search", gsrsearch: name, gsrnamespace: "6", gsrlimit: "8", prop: "imageinfo", iiprop: "url|mime", iiurlwidth: "256" });
+    const pages = ((d.query && d.query.pages) || []).sort(byIndex);
+    for (const p of pages) {
+      const ii = p.imageinfo && p.imageinfo[0];
+      if (ii && ii.thumburl && /^image\/(jpeg|png|webp)/.test(ii.mime || "")) return { src: ii.thumburl, page: ii.descriptionurl || "", title: "", desc: "" };
+    }
+    return null;
+  }
+  async function findPhoto(name, ctx) {
+    try { const i = await searchPhoto(name + " " + ctx); if (i) return i; } catch (e) { /* offline or blocked */ }
+    try { const i = await commonsPhoto(name); if (i) return i; } catch (e) { /* offline or blocked */ }
+    return null;
+  }
+
+  function initials(name) {
+    const w = name.replace(/^The\s+/i, "").split(/[\s.\-]+/).filter(Boolean);
+    if (!w.length) return "?";
+    return (w[0][0] + (w.length > 1 ? w[w.length - 1][0] : "")).toUpperCase();
+  }
+  function makeAv(name, big) {
+    const a = document.createElement(big ? "a" : "span");
+    a.className = "av" + (big ? " lg" : "");
+    a.dataset.state = "loading";
+    a.textContent = initials(name);
+    return a;
+  }
+  function setPhoto(av, info) {
+    if (!info) { av.dataset.state = "none"; return; }
+    const img = new Image();
+    img.alt = "";
+    img.decoding = "async";
+    img.referrerPolicy = "no-referrer";
+    img.onload = () => {
+      av.textContent = "";
+      av.append(img);
+      av.dataset.state = "ready";
+      if (av.tagName === "A" && info.page) {
+        av.href = info.page;
+        av.target = "_blank";
+        av.rel = "noopener";
+        av.title = "Photo: Wikimedia Commons";
+      }
+    };
+    img.onerror = () => { av.dataset.state = "none"; };
+    img.src = info.src;
+  }
+  function bind(el, key, scope) {
+    avatars.push({ key, el, scope });
+    const hit = cacheGet(key);
+    if (hit) setPhoto(el, hit);
+    else if (done.has(key)) el.dataset.state = "none";
+  }
+  function settle(run, key, info) {
+    done.add(key);
+    if (run !== runId) return;
+    avatars.filter((a) => a.key === key).forEach((a) => (info ? setPhoto(a.el, info) : (a.el.dataset.state = "none")));
+  }
+
+  async function loadPhotos(run, ans) {
+    const s = SPORTS[sport];
+    const ctx = CTX[s.id];
+    const names = s.players.map((p) => p.name);
+
+    const players = async () => {
+      try { await exactBatch(names); } catch (e) { /* fall through to search */ }
+      const missing = [];
+      names.forEach((n) => { const hit = cacheGet(n); if (hit) settle(run, n, hit); else missing.push(n); });
+      await Promise.all(missing.map(async (n) => {
+        const info = await findPhoto(n, ctx);
+        if (info) cachePut(n, info);
+        settle(run, n, info);
+      }));
+    };
+    const guess = async () => {
+      if (ans.idx >= 0) return;
+      const gkey = "guess:" + s.id + ":" + ans.typed.toLowerCase();
+      let info = cacheGet(gkey);
+      if (!info) {
+        info = await findPhoto(ans.typed, ctx);
+        if (info) cachePut(gkey, info);
+      }
+      if (run !== runId) { done.add(gkey); return; }
+      if (info && info.title) ans.name = cleanTitle(info.title);
+      ans.desc = (info && info.desc) || "";
+      refreshGuess();
+      settle(run, gkey, info);
+    };
+    await Promise.all([players(), guess()]);
+  }
+
+  /* the typed name may turn into the real article title once Wikipedia answers */
+  function refreshGuess() {
+    const gi = items.findIndex((it) => it.guess);
+    if (gi < 0 || !answer) return;
+    items[gi].name = answer.name;
+    if (rows[gi] && rows[gi].nameEl) rows[gi].nameEl.textContent = answer.name;
+    if (shown === gi && profileRefs) {
+      setWords(profileRefs.h, answer.name);
+      profileRefs.why.textContent = answer.desc;
+      profileRefs.why.hidden = !answer.desc;
+    }
+  }
+
+  const tidy = (q) => q.replace(/\s+/g, " ").split(" ").map((w) => w.charAt(0).toLocaleUpperCase() + w.slice(1)).join(" ");
+
+  /* ---------- answer, ranking, profile ---------- */
   function submit() {
     const q = input.value.trim();
     if (!q) { input.focus(); return; }
     const s = SPORTS[sport];
     const idx = findMatch(s, q);
     const first = results.hidden;
-    answer = { idx };
-    shown = idx >= 0 ? idx : 0;
+    answer = { idx, typed: q, name: idx >= 0 ? s.players[idx].name : tidy(q), desc: "" };
+    shown = idx >= 0 ? idx : s.players.length;
+    runId++;
+    const run = runId;
     if (idx >= 0) input.value = s.players[idx].name;
 
     composer.classList.toggle("done", idx >= 0);
@@ -1073,11 +1302,13 @@
     bump(verdictEl, "show");
 
     results.style.setProperty("--d", first ? "0.35s" : "0.05s");
+    avatars = [];
     renderRanking();
     renderProfile();
     results.hidden = false;
     stage.classList.add("answered");
     if (!finePointer) input.blur();
+    loadPhotos(run, answer);
   }
 
   input.addEventListener("input", () => {
@@ -1088,32 +1319,48 @@
   });
   send.addEventListener("click", submit);
 
+  function buildItems() {
+    const s = SPORTS[sport];
+    const list = s.players.map((p, i) => ({ name: p.name, rank: i + 1, mine: !!answer && answer.idx === i, key: p.name }));
+    if (answer && answer.idx < 0) {
+      list.push({ name: answer.name, rank: 0, mine: true, guess: true, key: "guess:" + s.id + ":" + answer.typed.toLowerCase() });
+    }
+    return list;
+  }
+
   function renderRanking() {
     const s = SPORTS[sport];
+    items = buildItems();
+    avatars = avatars.filter((a) => a.scope !== "row");
     listName.textContent = "Our top 5 " + s.noun + "s";
-    legend.hidden = !(answer && answer.idx >= 0);
-    rows = s.players.map((p, i) => {
+    legend.hidden = !answer;
+    rows = items.map((it, i) => {
       const li = document.createElement("li");
       li.style.setProperty("--i", i);
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "row";
-      const r = document.createElement("span");
-      r.className = "rk";
-      r.textContent = String(i + 1);
+      b.className = "row" + (it.guess ? " guess" : "");
+      const av = makeAv(it.name, false);
+      bind(av, it.key, "row");
       const n = document.createElement("span");
-      n.textContent = p.name;
-      b.append(r, n);
-      if (answer && answer.idx === i) {
-        b.setAttribute("data-mine", "");
+      n.textContent = it.name;
+      b.append(av, n);
+      if (it.mine) {
+        const dot = document.createElement("i");
+        dot.className = "mdot";
+        dot.setAttribute("aria-hidden", "true");
         const m = document.createElement("span");
         m.className = "mine";
         m.textContent = "your answer";
-        b.append(m);
+        b.append(dot, m);
       }
+      const rk = document.createElement("span");
+      rk.className = "rk" + (it.guess ? " none" : "");
+      rk.textContent = it.guess ? "–" : String(it.rank);
+      b.append(rk);
       b.addEventListener("click", () => pick(i));
       li.appendChild(b);
-      return { li, b };
+      return { li, b, nameEl: n };
     });
     ranking.replaceChildren(...rows.map((x) => x.li));
     markShown();
@@ -1125,17 +1372,42 @@
 
   /* children are rebuilt each time, so their entrance animations replay on every change */
   function renderProfile() {
-    const p = SPORTS[sport].players[shown];
+    const it = items[shown];
+    const s = SPORTS[sport];
+    avatars = avatars.filter((a) => a.scope !== "profile");
 
     const head = document.createElement("div");
     head.className = "head";
-    const r = document.createElement("span");
-    r.className = "rk";
-    r.textContent = String(shown + 1);
+    const wrap = document.createElement("span");
+    wrap.className = "avwrap";
+    const av = makeAv(it.name, true);
+    bind(av, it.key, "profile");
+    wrap.append(av);
+    if (!it.guess) {
+      const bdg = document.createElement("span");
+      bdg.className = "bdg";
+      bdg.textContent = String(it.rank);
+      wrap.append(bdg);
+    }
     const h = document.createElement("h2");
-    setWords(h, p.name);
-    head.append(r, h);
+    setWords(h, it.name);
+    head.append(wrap, h);
 
+    if (it.guess) {
+      const sub = document.createElement("p");
+      sub.className = "sub";
+      sub.textContent = "Not in our top 5 " + s.noun + "s.";
+      const why = document.createElement("p");
+      why.className = "why";
+      why.textContent = (answer && answer.desc) || "";
+      why.hidden = !why.textContent;
+      profileRefs = { h, why };
+      profile.replaceChildren(head, sub, why);
+      return;
+    }
+
+    profileRefs = null;
+    const p = s.players[it.rank - 1];
     const why = document.createElement("p");
     why.className = "why";
     why.textContent = p.why;

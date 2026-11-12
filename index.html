@@ -697,7 +697,7 @@
      Until BOTH are filled in, the page runs in preview mode: it works, but nothing is recorded. */
   const CONFIG = {
     API: "https://api.thegoat.is",
-    TURNSTILE_SITEKEY: "0x4AAAAAAF-Owu6fH2sGAfF3",
+    TURNSTILE_SITEKEY: "",
   };
 
   const SPORTS = [
@@ -1149,7 +1149,7 @@
     send.setAttribute("aria-label", LIVE ? "Cast your vote" : "Show where this ranks");
     numEl.innerHTML = ARROW;
     hint.textContent = hintFor(s);
-    input.placeholder = voted[s.id] ? "You voted for " + disp(voted[s.id].name) + ". Look up anyone…" : "Type a name…";
+    input.placeholder = placeholderFor(s);
     verdictEl.textContent = "";
     verdictEl.classList.remove("show");
     results.hidden = true;
@@ -1401,6 +1401,12 @@
   const saveVoted = () => store.set("goat:voted:v1", JSON.stringify(voted));
   const getDev = () => store.get("goat:dev:v1") || "";
 
+  function placeholderFor(s) {
+    const v = voted[s.id];
+    if (!v) return "Type a name…";
+    return v.name ? "You voted for " + disp(v.name) + ". Look up anyone…" : "This device already voted. Look up anyone…";
+  }
+
   function hintFor(s) {
     if (!LIVE) return "Press Enter to see where it ranks";
     return voted[s.id] ? "Votes are final. You can still look up anyone." : "Press Enter to cast your vote";
@@ -1518,26 +1524,120 @@
     v: 1, ms: beh.first ? Math.round(performance.now() - beh.first) : 0, keys: beh.keys, ptr: beh.ptr, tr: beh.trusted,
     wd: !!navigator.webdriver, hc: navigator.hardwareConcurrency || 0, lang: (navigator.languages || []).length,
   });
-  async function fingerprint() {
+  /* --- device fingerprint in five parts. Each part is the same in a normal and a private window of one browser. --- */
+  async function sha16(text) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  function fpCanvas() {
     try {
       const c = document.createElement("canvas");
-      c.width = 240; c.height = 60;
+      c.width = 280; c.height = 70;
       const g = c.getContext("2d");
-      g.textBaseline = "top"; g.font = "16px Arial"; g.fillStyle = "#f60"; g.fillRect(100, 1, 62, 20);
-      g.fillStyle = "#069"; g.fillText("GOAT Cwm fjordbank glyphs vext quiz", 2, 15);
-      g.fillStyle = "rgba(102,204,0,0.7)"; g.fillText("GOAT Cwm fjordbank glyphs", 4, 35);
-      let gl = "";
-      try {
-        const ctx = document.createElement("canvas").getContext("webgl");
-        const ext = ctx.getExtension("WEBGL_debug_renderer_info");
-        gl = ext ? ctx.getParameter(ext.UNMASKED_VENDOR_WEBGL) + "|" + ctx.getParameter(ext.UNMASKED_RENDERER_WEBGL) : String(ctx.getParameter(ctx.VERSION));
-      } catch (e) { /* no webgl */ }
-      const parts = [c.toDataURL(), gl, screen.width + "x" + screen.height + "x" + screen.colorDepth, window.devicePixelRatio,
-        Intl.DateTimeFormat().resolvedOptions().timeZone, navigator.language, (navigator.languages || []).join(","),
-        navigator.hardwareConcurrency, navigator.deviceMemory || "", navigator.maxTouchPoints || 0, navigator.platform];
-      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(parts.join("||")));
-      return Array.from(new Uint8Array(buf)).slice(0, 16).map((b) => b.toString(16).padStart(2, "0")).join("");
+      g.textBaseline = "alphabetic";
+      g.fillStyle = "#f60"; g.fillRect(100, 1, 62, 20);
+      g.fillStyle = "#069"; g.font = "15px Arial"; g.fillText("GOAT, Cwm fjordbank glyphs vext quiz \u{1F410}", 2, 15);
+      g.fillStyle = "rgba(102,204,0,0.7)"; g.font = "17px serif"; g.fillText("GOAT, Cwm fjordbank glyphs vext quiz", 4, 40);
+      g.globalCompositeOperation = "multiply";
+      [["#f2f", 70, 55], ["#2ff", 100, 55], ["#ff2", 85, 38]].forEach(([col, x, y]) => { g.fillStyle = col; g.beginPath(); g.arc(x, y, 14, 0, Math.PI * 2, true); g.closePath(); g.fill(); });
+      const grad = g.createLinearGradient(0, 0, 280, 0);
+      grad.addColorStop(0, "#123"); grad.addColorStop(1, "#fa0");
+      g.fillStyle = grad; g.fillRect(180, 10, 90, 50);
+      return c.toDataURL();
     } catch (e) { return ""; }
+  }
+  function fpWebgl() {
+    try {
+      const cv = document.createElement("canvas");
+      cv.width = 48; cv.height = 48;
+      const gl = cv.getContext("webgl") || cv.getContext("experimental-webgl");
+      if (!gl) return "";
+      const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+      const P = (k) => String(gl.getParameter(k));
+      const info = [dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : P(gl.VENDOR), dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : P(gl.RENDERER), P(gl.VERSION), P(gl.SHADING_LANGUAGE_VERSION)];
+      const caps = [gl.MAX_TEXTURE_SIZE, gl.MAX_VIEWPORT_DIMS, gl.MAX_RENDERBUFFER_SIZE, gl.MAX_VERTEX_ATTRIBS, gl.MAX_VARYING_VECTORS,
+        gl.MAX_VERTEX_UNIFORM_VECTORS, gl.MAX_FRAGMENT_UNIFORM_VECTORS, gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS, gl.ALIASED_LINE_WIDTH_RANGE, gl.ALIASED_POINT_SIZE_RANGE].map(P);
+      const hp = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
+      const exts = (gl.getSupportedExtensions() || []).slice().sort().join(",");
+      const shader = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+      const prog = gl.createProgram();
+      gl.attachShader(prog, shader(gl.VERTEX_SHADER, "attribute vec2 p;varying vec2 v;void main(){v=p;gl_Position=vec4(p,0.0,1.0);}"));
+      gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, "precision highp float;varying vec2 v;void main(){float t=sin(dot(v,vec2(12.9898,78.233)))*43758.5453;gl_FragColor=vec4(fract(t),fract(t*1.7+v.x),fract(sqrt(abs(v.y))*9.1),1.0);}"));
+      gl.linkProgram(prog);
+      gl.useProgram(prog);
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1, -1, 1, 1, -1]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, "p");
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      gl.viewport(0, 0, 48, 48);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      const px = new Uint8Array(48 * 48 * 4);
+      gl.readPixels(0, 0, 48, 48, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      let h = 0;
+      for (let i = 0; i < px.length; i += 7) h = (h * 31 + px[i]) | 0;
+      const out = info.join("|") + "#" + caps.join("|") + "#" + (hp ? hp.rangeMin + "," + hp.rangeMax + "," + hp.precision : "") + "#" + exts + "#" + h;
+      const lose = gl.getExtension("WEBGL_lose_context");
+      if (lose) lose.loseContext();
+      return out;
+    } catch (e) { return ""; }
+  }
+  function fpAudio() {
+    return new Promise((resolve) => {
+      try {
+        const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+        if (!Ctx) return resolve("");
+        const ctx = new Ctx(1, 5000, 44100);
+        const osc = ctx.createOscillator();
+        osc.type = "triangle";
+        osc.frequency.value = 10000;
+        const comp = ctx.createDynamicsCompressor();
+        [["threshold", -50], ["knee", 40], ["ratio", 12], ["attack", 0], ["release", 0.25]].forEach(([k, v]) => { if (comp[k] && comp[k].setValueAtTime) comp[k].setValueAtTime(v, 0); });
+        osc.connect(comp);
+        comp.connect(ctx.destination);
+        osc.start(0);
+        let done = false;
+        const timer = setTimeout(() => { if (!done) { done = true; resolve(""); } }, 1500);
+        ctx.oncomplete = (e) => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          const d = e.renderedBuffer.getChannelData(0);
+          let sum = 0;
+          for (let i = 4500; i < 5000; i++) sum += Math.abs(d[i]);
+          resolve(sum.toFixed(4));
+        };
+        ctx.startRendering();
+      } catch (e) { resolve(""); }
+    });
+  }
+  const FP_FONTS = ["Arial", "Arial Black", "Arial Narrow", "Calibri", "Cambria", "Candara", "Comic Sans MS", "Consolas", "Constantia", "Corbel", "Courier New", "Ebrima", "Franklin Gothic Medium", "Gabriola", "Gadugi", "Georgia", "Impact", "Javanese Text", "Leelawadee UI", "Lucida Console", "Lucida Sans Unicode", "Malgun Gothic", "Marlett", "Microsoft Himalaya", "Microsoft JhengHei", "Microsoft YaHei", "MingLiU-ExtB", "Mongolian Baiti", "MS Gothic", "MV Boli", "Myanmar Text", "Nirmala UI", "Palatino Linotype", "Segoe MDL2 Assets", "Segoe Print", "Segoe Script", "Segoe UI", "Segoe UI Emoji", "Segoe UI Symbol", "SimSun", "Sitka Text", "Sylfaen", "Symbol", "Tahoma", "Times New Roman", "Trebuchet MS", "Verdana", "Webdings", "Wingdings", "Yu Gothic", "Helvetica", "Helvetica Neue", "Menlo", "Monaco", "Avenir", "Avenir Next", "Optima", "Futura", "Gill Sans", "Baskerville", "Didot", "Hoefler Text", "American Typewriter", "Apple Chancery", "Geneva", "Lucida Grande", "Skia", "Zapfino", "PingFang SC", "Hiragino Sans", "Roboto", "Noto Sans", "Noto Serif", "Droid Sans", "Ubuntu", "DejaVu Sans", "DejaVu Serif", "Liberation Sans", "Liberation Serif", "Cantarell", "Fira Sans", "Open Sans", "SF Pro Text"];
+  function fpFonts() {
+    try {
+      const g = document.createElement("canvas").getContext("2d");
+      const text = "mmmmmmmmmmlli1WwQq@#";
+      const base = ["monospace", "sans-serif", "serif"];
+      const width = (font) => { g.font = "48px " + font; return g.measureText(text).width; };
+      const baseW = base.map(width);
+      return FP_FONTS.filter((f) => base.some((b, i) => width("'" + f + "'," + b) !== baseW[i])).join(",");
+    } catch (e) { return ""; }
+  }
+  function fpSystem() {
+    // physical pixels, so browser zoom and rotating a phone do not change it
+    const dpr = window.devicePixelRatio || 1;
+    const dims = [Math.round(screen.width * dpr), Math.round(screen.height * dpr)].sort((a, b) => a - b).join("x");
+    const mq = (q) => { try { return matchMedia(q).matches ? 1 : 0; } catch (e) { return 0; } };
+    const uad = navigator.userAgentData || {};
+    return [dims, screen.colorDepth, Intl.DateTimeFormat().resolvedOptions().timeZone, (navigator.languages || [navigator.language]).join(","),
+      navigator.hardwareConcurrency || 0, navigator.deviceMemory || 0, navigator.maxTouchPoints || 0, navigator.platform, uad.platform || "", uad.mobile ? 1 : 0,
+      mq("(color-gamut: p3)"), mq("(color-gamut: rec2020)"), mq("(dynamic-range: high)"), mq("(pointer: fine)"), mq("(pointer: coarse)"), mq("(hover: hover)")].join("|");
+  }
+  async function fingerprint() {
+    const raw = { c: fpCanvas(), g: fpWebgl(), a: await fpAudio(), f: fpFonts(), s: fpSystem() };
+    const out = {};
+    for (const k of Object.keys(raw)) out[k] = raw[k] ? await sha16(raw[k]) : "";
+    return out;
   }
 
   /* ---------- answer flow ---------- */
@@ -1624,6 +1724,10 @@
       voted[s.id] = { key: b.candidate.key, name: b.candidate.name };
       saveVoted();
       await browse(id, run);
+    } else if (res.status === 200 && b.status === "device_repeat") {
+      voted[s.id] = { key: "", name: "" };               // this device voted here before (new window, cleared storage)
+      saveVoted();
+      await browse(id, run);
     } else if (res.status === 422) showError("unknown");
     else if (res.status === 429) showError("rate");
     else if (res.status === 403) showError("verify");
@@ -1634,17 +1738,17 @@
   /* already voted here: look anyone up without voting */
   async function browse(id, run) {
     const s = SPORTS[sport];
-    const mine = voted[s.id];
+    const mine = voted[s.id] || { key: "", name: "" };
     const lookKey = keyOf(id.full);
     setBusy(true, "Looking it up…");
     let r;
-    try { r = await vapi("/api/board?category=" + s.id + "&limit=5&focus=" + encodeURIComponent(mine.key + "," + lookKey)); }
+    try { r = await vapi("/api/board?category=" + s.id + "&limit=5&focus=" + encodeURIComponent([mine.key, lookKey].filter(Boolean).join(","))); }
     catch (e) { if (run === runId) { setBusy(false); showError("network"); } return; }
     if (run !== runId) return;
     setBusy(false);
     if (r.status !== 200) { showError("network"); return; }
     const found = (r.body.rows || []).concat(r.body.focus || []).find((x) => x.key === lookKey);
-    showResult({ kind: "browse", board: r.body, mineKey: mine.key, shownKey: lookKey, lookup: { key: lookKey, full: id.full, desc: id.desc }, rank: found ? found.rank : null }, run);
+    showResult({ kind: "browse", board: r.body, mineKey: mine.key || null, shownKey: lookKey, lookup: { key: lookKey, full: id.full, desc: id.desc }, rank: found ? found.rank : null }, run);
   }
 
   /* no server configured: the starting ranking only, nothing is recorded */
@@ -1714,14 +1818,16 @@
         ? "Your vote is in. " + disp(shownRow.name) + " is #" + o.after.rank + " with " + plural(o.after.votes, "vote") + (o.after.rank < o.before.rank ? " — up from #" + o.before.rank + "." : ".")
         : "Your vote for " + disp(shownRow.name) + " is recorded. It shows up in the ranking once it’s verified.";
     } else if (o.kind === "browse") {
-      verdictEl.textContent = "Votes are final: you voted for " + mineName + ". Here’s how " + disp(shownRow.name) + " stands.";
+      verdictEl.textContent = mineName
+        ? "Votes are final: you voted for " + mineName + ". Here’s how " + disp(shownRow.name) + " stands."
+        : "This device has already voted in " + s.tab + ". One vote per device. Here’s how " + disp(shownRow.name) + " stands.";
     } else {
       verdictEl.textContent = "Preview mode: votes aren’t recorded.";
     }
     verdictEl.classList.remove("bad");
     bump(verdictEl, "show");
     hint.textContent = o.kind === "preview" ? "Try another name" : "Votes are final. You can still look up anyone.";
-    input.placeholder = voted[s.id] ? "You voted for " + disp(voted[s.id].name) + ". Look up anyone…" : "Type a name…";
+    input.placeholder = placeholderFor(s);
     if (o.kind === "voted") input.value = disp(shownRow.name);
     noteEl.textContent = LIVE
       ? "One vote per device. Votes are checked before they count. We keep an anonymous device signal to stop duplicates. Photos: Wikimedia Commons."

@@ -300,47 +300,75 @@
   .legend { display: inline-flex; align-items: center; gap: 6px; }
   .legend i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 
-  .ranking { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
-  .ranking li { animation: rise 0.45s calc(var(--d, 0s) + var(--i, 0) * 60ms) var(--ease) backwards; }
-  .row {
+  .board { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .board li { animation: rise 0.45s calc(var(--d, 0s) + var(--i, 0) * 60ms) var(--ease) backwards; }
+  .board li.gap { animation: none; text-align: center; color: var(--muted); font-size: 14px; line-height: 6px; letter-spacing: 0.4em; }
+
+  /* one leaderboard row: rank, round photo, name, votes; the share of all votes fills the row */
+  .lrow {
     position: relative;
-    display: inline-flex;
+    display: grid;
+    grid-template-columns: 24px 36px minmax(0, 1fr) auto;
     align-items: center;
-    gap: 9px;
-    height: 44px;
-    padding: 0 12px 0 5px;
+    gap: 10px;
+    width: 100%;
+    min-height: 54px;
+    padding: 8px 14px 8px 10px;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: 16px;
     background: var(--card);
     color: var(--ink);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
-    white-space: nowrap;
+    text-align: left;
     cursor: pointer;
-    transition: background-color 0.25s, border-color 0.25s, color 0.25s, transform 0.3s var(--spring);
+    overflow: hidden;
+    transition: border-color 0.3s, background-color 0.25s, transform 0.3s var(--spring);
   }
-  .row.guess { border-style: dashed; }
-  .row:active { transform: scale(0.96); }
-  .row .rk {
+  .lrow:active { transform: scale(0.985); }
+  .lrow > * { position: relative; }
+  .lrow .fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0;
+    background: rgba(194, 65, 12, 0.14);
+    pointer-events: none;
+    transition: width 1s var(--ease);
+  }
+  @supports (background: color-mix(in srgb, red, blue)) {
+    .lrow .fill { background: color-mix(in srgb, var(--accent) 17%, transparent); }
+  }
+  .lrow[aria-current="true"] { border-color: var(--accent); }
+  .lrow .rk {
     display: grid;
     place-items: center;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     border: 1.5px solid currentColor;
     border-radius: 50%;
-    font-size: 11px;
+    font-size: 11.5px;
     font-weight: 500;
     line-height: 1;
   }
-  .row .rk.none { border-style: dashed; opacity: 0.65; }
-  .mdot { flex: none; width: 6px; height: 6px; margin-right: -2px; border-radius: 50%; background: var(--accent); }
-  .row[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .row[aria-current="true"] .mdot { background: #fff; }
-  .row[aria-current="true"] .av { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9); }
+  .lrow .rk.none { border-style: dashed; opacity: 0.6; }
+  .lrow .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lrow[data-mine] .nm::after {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-left: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    vertical-align: middle;
+  }
+  .lrow .ct { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+  .lrow .ct i { font-style: normal; font-size: 12px; color: var(--muted); }
   .mine { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   @media (hover: hover) {
-    .row:not([aria-current="true"]):hover { background: var(--hover); }
+    .lrow:hover { background: var(--hover); }
   }
+  .ts { display: flex; justify-content: center; margin-top: 12px; }
 
   /* round head photos (Wikimedia Commons); initials show until the photo arrives */
   .av {
@@ -651,17 +679,27 @@
         </div>
       </div>
     </section>
+    <div class="ts" id="ts" hidden></div>
     <p class="verdict" id="verdict" aria-live="polite"></p>
 
     <div class="results" id="results" hidden>
-      <p class="rankhead"><span id="listName"></span><span class="legend" id="legend" hidden><i></i>your answer</span></p>
-      <ol class="ranking" id="ranking"></ol>
+      <p class="rankhead"><span id="listName"></span><span class="legend" id="legend" hidden><i></i>your vote</span></p>
+      <ol class="board" id="ranking"></ol>
       <article class="profile" id="profile"></article>
-      <p class="note">Picks are opinions. Stats as of mid-2026. Photos: Wikimedia Commons.</p>
+      <p class="note" id="note">Photos: Wikimedia Commons.</p>
     </div>
   </main>
 
 <script>
+  /* ---------- settings (see README) ----------
+     API: address of your vote server (the Cloudflare Worker).
+     TURNSTILE_SITEKEY: the public site key of your Cloudflare Turnstile widget (paste it after step 3 of the README).
+     Until BOTH are filled in, the page runs in preview mode: it works, but nothing is recorded. */
+  const CONFIG = {
+    API: "https://api.thegoat.is",
+    TURNSTILE_SITEKEY: "0x4AAAAAAF-Owu6fH2sGAfF3",
+  };
+
   const SPORTS = [
     {
       id: "basketball", tab: "Basketball", noun: "basketball player", color: "#C2410C",
@@ -1017,7 +1055,7 @@
   const scenes = [...ambient.querySelectorAll(".scene")];
 
   /* state */
-  let sport = -1, answer = null, shown = 0, rows = [], items = [], avatars = [], profileRefs = null, runId = 0;
+  let sport = -1, view = null, rows = [], avatars = [], runId = 0, busy = false;
 
   /* sport picker */
   const options = SPORTS.map((s, i) => {
@@ -1092,7 +1130,7 @@
     if (i === sport) return;
     const s = SPORTS[i];
     const swapping = sport !== -1;
-    sport = i; answer = null; shown = 0; runId++; avatars = []; items = []; rows = []; profileRefs = null;
+    sport = i; runId++; view = null; avatars = []; rows = []; busy = false;
 
     root.style.setProperty("--accent", s.color);
     if (VIDEO[s.id]) root.dataset.stage = "video"; else delete root.dataset.stage;
@@ -1108,9 +1146,10 @@
     composer.classList.remove("done", "invalid");
     send.classList.remove("ready", "answered", "unranked", "pop", "invalid", "busy");
     verdictEl.classList.remove("bad");
-    send.setAttribute("aria-label", "Show where this ranks");
+    send.setAttribute("aria-label", LIVE ? "Cast your vote" : "Show where this ranks");
     numEl.innerHTML = ARROW;
-    hint.textContent = HINT;
+    hint.textContent = hintFor(s);
+    input.placeholder = voted[s.id] ? "You voted for " + disp(voted[s.id].name) + ". Look up anyone…" : "Type a name…";
     verdictEl.textContent = "";
     verdictEl.classList.remove("show");
     results.hidden = true;
@@ -1246,33 +1285,17 @@
     avatars.filter((a) => a.key === key).forEach((a) => (info ? setPhoto(a.el, info) : (a.el.dataset.state = "none")));
   }
 
-  async function loadPhotos(run, ans) {
-    const s = SPORTS[sport];
-    const ctx = CTX[s.id];
-    const names = s.players.map((p) => p.name);
-
-    const players = async () => {
-      try { await exactBatch(names); } catch (e) { /* fall through to search */ }
-      const missing = [];
-      names.forEach((n) => { const hit = cacheGet(n); if (hit) settle(run, n, hit); else missing.push(n); });
-      await Promise.all(missing.map(async (n) => {
-        const info = await findPhoto(n, ctx);
-        if (info) cachePut(n, info);
-        settle(run, n, info);
-      }));
-    };
-    const guess = async () => {
-      if (ans.idx >= 0) return;
-      const gkey = "guess:" + s.id + ":" + ans.typed.toLowerCase();
-      let info = ans.info || cacheGet(gkey);
-      if (!info && !ans.unverified) {          // a real person with no free lead image: look on Commons
-        try { info = await commonsPhoto(ans.name); } catch (e) { /* ignore */ }
-      }
-      if (info) cachePut(gkey, info);
-      if (run !== runId) { done.add(gkey); return; }
-      settle(run, gkey, info);
-    };
-    await Promise.all([players(), guess()]);
+  async function loadPhotos(run) {
+    const ctx = CTX[SPORTS[sport].id];
+    const names = view.rows.map((r) => r.name);
+    try { await exactBatch(names); } catch (e) { /* fall through to search */ }
+    const missing = [];
+    names.forEach((n) => { const hit = cacheGet(n); if (hit) settle(run, n, hit); else missing.push(n); });
+    await Promise.all(missing.map(async (n) => {
+      const info = await findPhoto(n, ctx);
+      if (info) cachePut(n, info);
+      settle(run, n, info);
+    }));
   }
 
   /* ---------- is this a real name at all? ---------- */
@@ -1336,7 +1359,7 @@
     const tokens = norm(clean).split(" ").filter(Boolean);
     const props = { prop: "pageimages|description|categories", piprop: "thumbnail|name", pithumbsize: "256", cllimit: "max" };
     const ok = (p) => !p.missing && isPerson(p) && titleMatches(tokens, p.title);
-    const result = (p) => ({ status: "valid", title: cleanTitle(p.title), desc: p.description || "", info: p.thumbnail ? wikiInfo(p) : null });
+    const result = (p) => ({ status: "valid", title: cleanTitle(p.title), full: p.title, desc: p.description || "", info: p.thumbnail ? wikiInfo(p) : null });
     let reached = false;
     try {                                   // 1) the exact name as an article title
       const d = await api(WP, Object.assign({ titles: clean, redirects: "1" }, props));
@@ -1355,55 +1378,295 @@
 
   const tidy = (q) => q.replace(/\s+/g, " ").split(" ").map((w) => w.charAt(0).toLocaleUpperCase() + w.slice(1)).join(" ");
 
-  /* ---------- answer, ranking, profile ---------- */
+  /* ---------- voting ---------- */
+  const LIVE = !!(CONFIG.API && CONFIG.TURNSTILE_SITEKEY);
+  const disp = (name) => cleanTitle(name);
   const CROSS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
   const SPIN = '<span class="spin"></span>';
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const tsBox = $("#ts");
+  const noteEl = $("#note");
+  const fmt = (n) => Number(n).toLocaleString("en-US");
+  const plural = (n, w) => fmt(n) + " " + w + (n === 1 ? "" : "s");
+
+  /* same normalisation as the server, so both sides agree on who a candidate is */
+  const keyOf = (title) => String(title).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const seedIndex = (s, key) => s.players.findIndex((p) => keyOf(p.name) === key);
+
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } },
+  };
+  const voted = (() => { try { return JSON.parse(store.get("goat:voted:v1") || "{}"); } catch (e) { return {}; } })();
+  const saveVoted = () => store.set("goat:voted:v1", JSON.stringify(voted));
+  const getDev = () => store.get("goat:dev:v1") || "";
+
+  function hintFor(s) {
+    if (!LIVE) return "Press Enter to see where it ranks";
+    return voted[s.id] ? "Votes are final. You can still look up anyone." : "Press Enter to cast your vote";
+  }
+
+  async function vapi(path, opts) {
+    opts = opts || {};
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 15000);
+    try {
+      const r = await fetch(CONFIG.API.replace(/\/$/, "") + path, {
+        method: opts.method || "GET",
+        credentials: "include",
+        headers: opts.body ? { "content-type": "application/json" } : {},
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+        signal: ctl.signal,
+      });
+      let body = {};
+      try { body = await r.json(); } catch (e) { /* not JSON */ }
+      return { status: r.status, body };
+    } finally { clearTimeout(t); }
+  }
+
+  /* --- human check: Cloudflare Turnstile (only shows itself if it has to) --- */
+  let tsLoad = null;
+  function loadTurnstile() {
+    if (window.turnstile) return Promise.resolve(window.turnstile);
+    if (!tsLoad) {
+      tsLoad = new Promise((resolve, reject) => {
+        const el = document.createElement("script");
+        el.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+        el.async = true;
+        el.onload = () => resolve(window.turnstile);
+        el.onerror = () => { tsLoad = null; reject(new Error("turnstile script")); };
+        document.head.appendChild(el);
+      });
+    }
+    return tsLoad;
+  }
+  async function getTurnstileToken() {
+    if (!CONFIG.TURNSTILE_SITEKEY) throw new Error("missing Turnstile site key");
+    const ts = await loadTurnstile();
+    tsBox.hidden = false;
+    return new Promise((resolve, reject) => {
+      let id;
+      const finish = (fn, v) => { try { ts.remove(id); } catch (e) { /* already gone */ } tsBox.hidden = true; fn(v); };
+      id = ts.render(tsBox, {
+        sitekey: CONFIG.TURNSTILE_SITEKEY, action: "vote", appearance: "interaction-only",
+        callback: (t) => finish(resolve, t),
+        "error-callback": () => finish(reject, new Error("turnstile error")),
+        "timeout-callback": () => finish(reject, new Error("turnstile timeout")),
+      });
+    });
+  }
+
+  /* --- proof of work: find a nonce so that SHA-256(salt:nonce) starts with `bits` zero bits --- */
+  function powSearch(salt, bits, start, limit) {
+    const K = new Uint32Array([0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2]);
+    const prefix = salt + ":", pl = prefix.length;
+    const w = new Uint32Array(64), block = new Uint8Array(64);
+    for (let i = 0; i < pl; i++) block[i] = prefix.charCodeAt(i);
+    const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+    for (let n = start; n < start + limit; n++) {
+      const digits = String(n), len = pl + digits.length;      // always fits one 64-byte block
+      for (let i = 0; i < digits.length; i++) block[pl + i] = digits.charCodeAt(i);
+      block[len] = 0x80;
+      for (let i = len + 1; i < 62; i++) block[i] = 0;
+      block[62] = ((len * 8) >>> 8) & 255; block[63] = (len * 8) & 255;
+      for (let i = 0; i < 16; i++) w[i] = (block[4 * i] << 24) | (block[4 * i + 1] << 16) | (block[4 * i + 2] << 8) | block[4 * i + 3];
+      for (let i = 16; i < 64; i++) {
+        const s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3);
+        const s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >>> 10);
+        w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+      }
+      let a = 0x6a09e667, b = 0xbb67ae85, c = 0x3c6ef372, d = 0xa54ff53a, e = 0x510e527f, f = 0x9b05688c, g = 0x1f83d9ab, h = 0x5be0cd19;
+      for (let i = 0; i < 64; i++) {
+        const t1 = (h + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + w[i]) | 0;
+        const t2 = ((rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+        h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+      }
+      const h0 = (a + 0x6a09e667) | 0, h1 = (b + 0xbb67ae85) | 0;
+      if ((h0 === 0 ? 32 + Math.clz32(h1) : Math.clz32(h0)) >= bits) return n;
+    }
+    return -1;
+  }
+  function solvePow(salt, bits) {
+    return new Promise((resolve) => {
+      const inline = async () => {                         // fallback: same search on the main thread, in slices
+        for (let start = 0; ; start += 20000) {
+          const n = powSearch(salt, bits, start, 20000);
+          if (n >= 0) return resolve(String(n));
+          await new Promise((r) => setTimeout(r));
+        }
+      };
+      try {
+        const src = "const powSearch=" + powSearch.toString() + ";onmessage=function(e){var s=e.data.salt,b=e.data.bits,i=0;for(;;){var n=powSearch(s,b,i,200000);if(n>=0){postMessage(n);return}i+=200000}}";
+        const url = URL.createObjectURL(new Blob([src], { type: "text/javascript" }));
+        const wk = new Worker(url);
+        wk.onmessage = (e) => { wk.terminate(); URL.revokeObjectURL(url); resolve(String(e.data)); };
+        wk.onerror = () => { wk.terminate(); URL.revokeObjectURL(url); inline(); };
+        wk.postMessage({ salt, bits });
+      } catch (e) { inline(); }
+    });
+  }
+
+  /* --- behaviour signals and a browser fingerprint (both only add suspicion points on the server) --- */
+  const beh = { first: 0, keys: 0, ptr: false, trusted: true };
+  input.addEventListener("input", (e) => {
+    if (!beh.first) beh.first = performance.now();
+    if (e.isTrusted) beh.keys++; else beh.trusted = false;
+  });
+  ["pointerdown", "pointermove", "touchstart", "mousemove", "wheel", "scroll"].forEach((ev) =>
+    window.addEventListener(ev, (e) => { if (e.isTrusted) beh.ptr = true; }, { passive: true, capture: true }));
+  const collectSignals = () => ({
+    v: 1, ms: beh.first ? Math.round(performance.now() - beh.first) : 0, keys: beh.keys, ptr: beh.ptr, tr: beh.trusted,
+    wd: !!navigator.webdriver, hc: navigator.hardwareConcurrency || 0, lang: (navigator.languages || []).length,
+  });
+  async function fingerprint() {
+    try {
+      const c = document.createElement("canvas");
+      c.width = 240; c.height = 60;
+      const g = c.getContext("2d");
+      g.textBaseline = "top"; g.font = "16px Arial"; g.fillStyle = "#f60"; g.fillRect(100, 1, 62, 20);
+      g.fillStyle = "#069"; g.fillText("GOAT Cwm fjordbank glyphs vext quiz", 2, 15);
+      g.fillStyle = "rgba(102,204,0,0.7)"; g.fillText("GOAT Cwm fjordbank glyphs", 4, 35);
+      let gl = "";
+      try {
+        const ctx = document.createElement("canvas").getContext("webgl");
+        const ext = ctx.getExtension("WEBGL_debug_renderer_info");
+        gl = ext ? ctx.getParameter(ext.UNMASKED_VENDOR_WEBGL) + "|" + ctx.getParameter(ext.UNMASKED_RENDERER_WEBGL) : String(ctx.getParameter(ctx.VERSION));
+      } catch (e) { /* no webgl */ }
+      const parts = [c.toDataURL(), gl, screen.width + "x" + screen.height + "x" + screen.colorDepth, window.devicePixelRatio,
+        Intl.DateTimeFormat().resolvedOptions().timeZone, navigator.language, (navigator.languages || []).join(","),
+        navigator.hardwareConcurrency, navigator.deviceMemory || "", navigator.maxTouchPoints || 0, navigator.platform];
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(parts.join("||")));
+      return Array.from(new Uint8Array(buf)).slice(0, 16).map((b) => b.toString(16).padStart(2, "0")).join("");
+    } catch (e) { return ""; }
+  }
+
+  /* ---------- answer flow ---------- */
+  const MESSAGES = {
+    shape: () => "That doesn’t look like a real name.",
+    unknown: (s) => "We can’t find any " + s.noun + " with that name.",
+    rate: () => "Too many attempts from your network. Try again later.",
+    verify: () => "We couldn’t verify you’re human. Reload the page and try again.",
+    unavailable: () => "The vote server is busy. Try again in a moment.",
+    network: () => "Can’t reach the vote server. Check your connection and try again.",
+  };
 
   function resetFeedback() {
     composer.classList.remove("invalid");
     send.classList.remove("invalid", "busy");
     verdictEl.classList.remove("bad");
   }
+  function setBusy(on, msg) {
+    busy = on;
+    send.classList.toggle("busy", on);
+    if (on) {
+      send.classList.remove("ready", "answered", "unranked", "invalid");
+      numEl.innerHTML = SPIN;
+      if (msg) { verdictEl.textContent = msg; verdictEl.classList.remove("bad"); bump(verdictEl, "show"); }
+    }
+  }
 
-  function submit() {
+  async function identify(q, s) {
+    const idx = findMatch(s, q);
+    if (idx >= 0) { const n = s.players[idx].name; return { status: "ok", full: n, name: n, desc: "" }; }
+    if (looksLikeGibberish(q)) return { status: "invalid", kind: "shape" };
+    const r = await resolveGuess(q, s);
+    if (r.status === "invalid") return { status: "invalid", kind: "unknown" };
+    return { status: "ok", full: r.full || tidy(q), name: r.title || tidy(q), desc: r.desc || "" };
+  }
+
+  async function submit() {
+    if (busy) return;
     const q = input.value.trim();
     if (!q) { input.focus(); return; }
     const s = SPORTS[sport];
-    const idx = findMatch(s, q);
     runId++;
     const run = runId;
     resetFeedback();
-    if (idx >= 0) {
-      showAnswer({ idx, typed: q, name: s.players[idx].name, desc: "", info: null, unverified: false }, run);
-      return;
-    }
-    if (looksLikeGibberish(q)) { showInvalid("shape"); return; }
-
-    send.classList.remove("ready", "answered", "unranked");
-    send.classList.add("busy");
-    numEl.innerHTML = SPIN;
-    verdictEl.textContent = "Looking it up…";
-    bump(verdictEl, "show");
-    resolveGuess(q, s).then((r) => {
-      if (run !== runId) return;
-      send.classList.remove("busy");
-      if (r.status === "invalid") { showInvalid("unknown"); return; }
-      showAnswer({ idx: -1, typed: q, name: r.title || tidy(q), desc: r.desc || "", info: r.info || null, unverified: r.status === "offline" }, run);
-    });
+    setBusy(true, findMatch(s, q) >= 0 ? "" : "Looking it up…");
+    let id;
+    try { id = await identify(q, s); } catch (e) { id = { status: "invalid", kind: "unknown" }; }
+    if (run !== runId) return;
+    if (id.status === "invalid") { setBusy(false); showError(id.kind); return; }
+    if (!LIVE) { setBusy(false); showPreview(id, run); return; }
+    if (voted[s.id]) await browse(id, run); else await castVote(id, run);
+    beh.first = 0; beh.keys = 0;
   }
 
-  function showInvalid(kind) {
+  async function castVote(id, run) {
     const s = SPORTS[sport];
-    answer = null; items = []; rows = []; avatars = []; profileRefs = null;
+    let res;
+    try {
+      setBusy(true, "Verifying you’re human…");
+      const token = await getTurnstileToken();
+      if (run !== runId) return;
+      setBusy(true, "Casting your vote…");
+      const ch = await vapi("/api/challenge?category=" + s.id);
+      if (ch.status === 429) { setBusy(false); showError("rate"); return; }
+      if (ch.status !== 200 || !ch.body.salt) { setBusy(false); showError("network"); return; }
+      const nonce = await solvePow(ch.body.salt, ch.body.bits);
+      const fp = await fingerprint();
+      res = await vapi("/api/vote", { method: "POST", body: {
+        category: s.id, title: id.full, ts: token,
+        pow: { id: ch.body.id, salt: ch.body.salt, bits: ch.body.bits, exp: ch.body.exp, sig: ch.body.sig, nonce },
+        dev: getDev(), sig: collectSignals(), fp,
+      } });
+    } catch (e) { if (run === runId) { setBusy(false); showError(e && /turnstile/i.test(e.message) ? "verify" : "network"); } return; }
+    if (run !== runId) return;
+    setBusy(false);
+    const b = res.body || {};
+    if (b.dev) store.set("goat:dev:v1", b.dev);
+    if (res.status === 200 && b.status === "ok") {
+      voted[s.id] = { key: b.candidate.key, name: b.candidate.name };
+      saveVoted();
+      showResult({ kind: "voted", board: b.board, mineKey: b.candidate.key, shownKey: b.candidate.key, before: b.before, after: b.after, rank: b.after.rank,
+        from: { key: b.candidate.key, votes: b.before.votes } }, run);
+    } else if (res.status === 200 && b.status === "already_voted") {
+      voted[s.id] = { key: b.candidate.key, name: b.candidate.name };
+      saveVoted();
+      await browse(id, run);
+    } else if (res.status === 422) showError("unknown");
+    else if (res.status === 429) showError("rate");
+    else if (res.status === 403) showError("verify");
+    else if (res.status === 503) showError("unavailable");
+    else showError("network");
+  }
+
+  /* already voted here: look anyone up without voting */
+  async function browse(id, run) {
+    const s = SPORTS[sport];
+    const mine = voted[s.id];
+    const lookKey = keyOf(id.full);
+    setBusy(true, "Looking it up…");
+    let r;
+    try { r = await vapi("/api/board?category=" + s.id + "&limit=5&focus=" + encodeURIComponent(mine.key + "," + lookKey)); }
+    catch (e) { if (run === runId) { setBusy(false); showError("network"); } return; }
+    if (run !== runId) return;
+    setBusy(false);
+    if (r.status !== 200) { showError("network"); return; }
+    const found = (r.body.rows || []).concat(r.body.focus || []).find((x) => x.key === lookKey);
+    showResult({ kind: "browse", board: r.body, mineKey: mine.key, shownKey: lookKey, lookup: { key: lookKey, full: id.full, desc: id.desc }, rank: found ? found.rank : null }, run);
+  }
+
+  /* no server configured: the starting ranking only, nothing is recorded */
+  function showPreview(id, run) {
+    const s = SPORTS[sport];
+    const rows = s.players.map((p, i) => ({ key: keyOf(p.name), name: p.name, description: "", votes: 0, rank: i + 1 }));
+    const key = keyOf(id.full);
+    const hit = rows.find((r) => r.key === key);
+    showResult({ kind: "preview", board: { total: 0, rows, focus: [] }, shownKey: key, lookup: hit ? null : { key, full: id.full, desc: id.desc }, rank: hit ? hit.rank : null, live: false }, run);
+  }
+
+  function showError(kind) {
+    const s = SPORTS[sport];
+    view = null; avatars = []; rows = [];
     composer.classList.remove("done");
     composer.classList.add("invalid");
     send.classList.remove("ready", "answered", "unranked", "busy");
     send.classList.add("invalid");
     numEl.innerHTML = CROSS;
     bump(send, "pop");
-    send.setAttribute("aria-label", "Not a valid name");
-    verdictEl.textContent = kind === "shape" ? "That doesn’t look like a real name." : "We can’t find any " + s.noun + " with that name.";
+    send.setAttribute("aria-label", "Not accepted");
+    verdictEl.textContent = (MESSAGES[kind] || MESSAGES.network)(s);
     verdictEl.classList.add("bad");
     bump(verdictEl, "show");
     hint.textContent = "Try another name";
@@ -1417,168 +1680,216 @@
     if (!finePointer) input.blur();
   }
 
-  function showAnswer(ans, run) {
+  function showResult(o, run) {
     const s = SPORTS[sport];
-    const idx = ans.idx;
+    const board = o.board;
+    const rows = board.rows.map((r) => ({ key: r.key, name: r.name, desc: r.description || "", votes: r.votes, rank: r.rank, extra: false }));
+    const have = new Set(rows.map((r) => r.key));
+    (board.focus || []).forEach((f) => {
+      if (!have.has(f.key)) { have.add(f.key); rows.push({ key: f.key, name: f.name, desc: f.description || "", votes: f.votes, rank: f.rank, extra: true }); }
+    });
+    if (o.lookup && !have.has(o.lookup.key)) rows.push({ key: o.lookup.key, name: o.lookup.full, desc: o.lookup.desc || "", votes: 0, rank: null, extra: true });
+    const max = Math.max(1, ...rows.map((r) => r.votes));
+    rows.forEach((r) => {
+      r.mine = !!o.mineKey && r.key === o.mineKey;
+      r.seed = seedIndex(s, r.key);
+      r.pct = board.total ? r.votes / board.total : 0;
+      r.rel = r.votes / max;
+    });
     const first = results.hidden;
-    answer = ans;
-    shown = idx >= 0 ? idx : s.players.length;
-    if (idx >= 0) input.value = ans.name;
+    view = { rows, total: board.total, shownKey: o.shownKey, mineKey: o.mineKey, from: o.from || null, live: o.live !== false };
 
-    composer.classList.toggle("done", idx >= 0);
-    send.classList.remove("ready", "busy");
+    const shownRow = rows.find((r) => r.key === o.shownKey);
+    composer.classList.add("done");
+    send.classList.remove("ready", "busy", "invalid");
     send.classList.add("answered");
-    send.classList.toggle("unranked", idx < 0);
-    numEl.textContent = idx >= 0 ? String(idx + 1) : "5+";
-    send.setAttribute("aria-label", idx >= 0 ? "Rank " + (idx + 1) + " of 5" : "Not in the top 5");
+    send.classList.toggle("unranked", o.rank == null);
+    numEl.textContent = o.rank != null ? String(o.rank) : "–";
+    send.setAttribute("aria-label", o.rank != null ? "Rank " + o.rank : "No rank yet");
     bump(send, "pop");
 
-    hint.textContent = "Try another name";
-    verdictEl.textContent = idx === 0 ? "Same pick as ours."
-      : idx > 0 ? "In our top 5, but not our top pick."
-      : ans.unverified ? "Not in our top 5. Couldn’t verify the name, no connection."
-      : "Not in our top 5.";
+    const mineName = o.mineKey ? disp((rows.find((r) => r.key === o.mineKey) || {}).name || (voted[s.id] || {}).name || "") : "";
+    if (o.kind === "voted") {
+      verdictEl.textContent = o.after.votes > o.before.votes
+        ? "Your vote is in. " + disp(shownRow.name) + " is #" + o.after.rank + " with " + plural(o.after.votes, "vote") + (o.after.rank < o.before.rank ? " — up from #" + o.before.rank + "." : ".")
+        : "Your vote for " + disp(shownRow.name) + " is recorded. It shows up in the ranking once it’s verified.";
+    } else if (o.kind === "browse") {
+      verdictEl.textContent = "Votes are final: you voted for " + mineName + ". Here’s how " + disp(shownRow.name) + " stands.";
+    } else {
+      verdictEl.textContent = "Preview mode: votes aren’t recorded.";
+    }
     verdictEl.classList.remove("bad");
     bump(verdictEl, "show");
+    hint.textContent = o.kind === "preview" ? "Try another name" : "Votes are final. You can still look up anyone.";
+    input.placeholder = voted[s.id] ? "You voted for " + disp(voted[s.id].name) + ". Look up anyone…" : "Type a name…";
+    if (o.kind === "voted") input.value = disp(shownRow.name);
+    noteEl.textContent = LIVE
+      ? "One vote per device. Votes are checked before they count. We keep an anonymous device signal to stop duplicates. Photos: Wikimedia Commons."
+      : "Preview mode: votes aren’t recorded. Photos: Wikimedia Commons.";
 
     results.style.setProperty("--d", first ? "0.35s" : "0.05s");
     avatars = [];
-    renderRanking();
+    renderBoard();
     renderProfile();
     results.hidden = false;
     stage.classList.add("answered");
     if (!finePointer) input.blur();
-    loadPhotos(run, ans);
+    loadPhotos(run);
   }
 
-  input.addEventListener("input", () => {
-    if (composer.classList.contains("invalid") || send.classList.contains("invalid")) {
-      resetFeedback();
-      numEl.innerHTML = ARROW;
-      send.setAttribute("aria-label", "Show where this ranks");
-      verdictEl.textContent = "";
-      verdictEl.classList.remove("show");
-      hint.textContent = HINT;
-    }
-    send.classList.toggle("ready", input.value.trim().length > 0);
-  });
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") { e.preventDefault(); submit(); }
-  });
-  send.addEventListener("click", submit);
-
-  function buildItems() {
-    const s = SPORTS[sport];
-    const list = s.players.map((p, i) => ({ name: p.name, rank: i + 1, mine: !!answer && answer.idx === i, key: p.name }));
-    if (answer && answer.idx < 0) {
-      list.push({ name: answer.name, rank: 0, mine: true, guess: true, key: "guess:" + s.id + ":" + answer.typed.toLowerCase() });
-    }
-    return list;
+  function animateCount(el, from, to) {
+    if (reducedMotion || from === to) { el.textContent = fmt(to); return; }
+    const t0 = performance.now(), dur = 900;
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / dur);
+      el.textContent = fmt(Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
-  function renderRanking() {
-    const s = SPORTS[sport];
-    items = buildItems();
+  function renderBoard() {
+    listName.textContent = view.live ? "Live ranking · " + plural(view.total, "vote") : "Starting ranking";
+    legend.hidden = !view.mineKey;
     avatars = avatars.filter((a) => a.scope !== "row");
-    listName.textContent = "Our top 5 " + s.noun + "s";
-    legend.hidden = !answer;
-    rows = items.map((it, i) => {
+    const lis = [];
+    let gap = false;
+    rows = view.rows.map((r, i) => {
+      if (r.extra && !gap) {
+        gap = true;
+        const g = document.createElement("li");
+        g.className = "gap";
+        g.setAttribute("aria-hidden", "true");
+        g.textContent = "···";
+        lis.push(g);
+      }
       const li = document.createElement("li");
       li.style.setProperty("--i", i);
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "row" + (it.guess ? " guess" : "");
-      const av = makeAv(it.name, false);
-      bind(av, it.key, "row");
-      const n = document.createElement("span");
-      n.textContent = it.name;
-      b.append(av, n);
-      if (it.mine) {
-        const dot = document.createElement("i");
-        dot.className = "mdot";
-        dot.setAttribute("aria-hidden", "true");
+      b.className = "lrow";
+      if (r.mine) b.setAttribute("data-mine", "");
+      const bar = document.createElement("span");
+      bar.className = "fill";
+      const rk = document.createElement("span");
+      rk.className = "rk" + (r.rank == null ? " none" : "");
+      rk.textContent = r.rank == null ? "–" : String(r.rank);
+      const av = makeAv(r.name, false);
+      bind(av, r.name, "row");
+      const nm = document.createElement("span");
+      nm.className = "nm";
+      nm.textContent = disp(r.name);
+      const ct = document.createElement("span");
+      ct.className = "ct";
+      let countEl = null;
+      if (view.live) {
+        countEl = document.createElement("b");
+        countEl.textContent = fmt(r.votes);
+        const pc = document.createElement("i");
+        pc.textContent = view.total ? Math.round(r.pct * 100) + "%" : "";
+        ct.append(countEl, pc);
+      }
+      b.append(bar, rk, av, nm, ct);
+      if (r.mine) {
         const m = document.createElement("span");
         m.className = "mine";
-        m.textContent = "your answer";
-        b.append(dot, m);
+        m.textContent = "your vote";
+        b.append(m);
       }
-      const rk = document.createElement("span");
-      rk.className = "rk" + (it.guess ? " none" : "");
-      rk.textContent = it.guess ? "–" : String(it.rank);
-      b.append(rk);
-      b.addEventListener("click", () => pick(i));
+      b.addEventListener("click", () => pick(r.key));
       li.appendChild(b);
-      return { li, b, nameEl: n };
+      lis.push(li);
+      return { li, b, r, bar, countEl };
     });
-    ranking.replaceChildren(...rows.map((x) => x.li));
+    ranking.replaceChildren(...lis);
+    requestAnimationFrame(() => requestAnimationFrame(() => rows.forEach((x) => { x.bar.style.width = (view.live ? Math.round(x.r.rel * 100) : 0) + "%"; })));
+    if (view.from) {
+      const x = rows.find((q) => q.r.key === view.from.key);
+      if (x && x.countEl) animateCount(x.countEl, view.from.votes, x.r.votes);
+    }
     markShown();
   }
 
   function markShown() {
-    rows.forEach((x, i) => x.b.setAttribute("aria-current", i === shown ? "true" : "false"));
+    rows.forEach((x) => x.b.setAttribute("aria-current", x.r.key === view.shownKey ? "true" : "false"));
   }
 
   /* children are rebuilt each time, so their entrance animations replay on every change */
   function renderProfile() {
-    const it = items[shown];
     const s = SPORTS[sport];
+    const r = view.rows.find((x) => x.key === view.shownKey) || view.rows[0];
     avatars = avatars.filter((a) => a.scope !== "profile");
 
     const head = document.createElement("div");
     head.className = "head";
     const wrap = document.createElement("span");
     wrap.className = "avwrap";
-    const av = makeAv(it.name, true);
-    bind(av, it.key, "profile");
+    const av = makeAv(r.name, true);
+    bind(av, r.name, "profile");
     wrap.append(av);
-    if (!it.guess) {
+    if (r.rank != null) {
       const bdg = document.createElement("span");
       bdg.className = "bdg";
-      bdg.textContent = String(it.rank);
+      bdg.textContent = String(r.rank);
       wrap.append(bdg);
     }
     const h = document.createElement("h2");
-    setWords(h, it.name);
+    setWords(h, disp(r.name));
     head.append(wrap, h);
 
-    if (it.guess) {
-      const sub = document.createElement("p");
-      sub.className = "sub";
-      sub.textContent = "Not in our top 5 " + s.noun + "s.";
+    const sub = document.createElement("p");
+    sub.className = "sub";
+    sub.textContent = !view.live ? (r.rank != null ? "#" + r.rank + " in the starting ranking" : "Not in the starting ranking")
+      : r.votes > 0 ? "#" + r.rank + " · " + plural(r.votes, "vote") + " · " + Math.round(r.pct * 100) + "% of all votes"
+      : "No votes yet";
+    const parts = [head, sub];
+
+    if (r.seed >= 0) {
+      const p = s.players[r.seed];
       const why = document.createElement("p");
       why.className = "why";
-      why.textContent = (answer && answer.desc) || "";
-      why.hidden = !why.textContent;
-      profileRefs = { h, why };
-      profile.replaceChildren(head, sub, why);
-      return;
+      why.textContent = p.why;
+      const ul = document.createElement("ul");
+      ul.className = "facts";
+      p.facts.forEach((f, k) => {
+        const li = document.createElement("li");
+        li.style.setProperty("--i", k);
+        li.textContent = f;
+        ul.appendChild(li);
+      });
+      parts.push(why, ul);
+    } else if (r.desc) {
+      const why = document.createElement("p");
+      why.className = "why";
+      why.textContent = r.desc;
+      parts.push(why);
     }
-
-    profileRefs = null;
-    const p = s.players[it.rank - 1];
-    const why = document.createElement("p");
-    why.className = "why";
-    why.textContent = p.why;
-
-    const ul = document.createElement("ul");
-    ul.className = "facts";
-    p.facts.forEach((f, k) => {
-      const li = document.createElement("li");
-      li.style.setProperty("--i", k);
-      li.textContent = f;
-      ul.appendChild(li);
-    });
-
-    profile.replaceChildren(head, why, ul);
+    profile.replaceChildren(...parts);
   }
 
-  function pick(i) {
-    if (i === shown) return;
-    shown = i;
+  function pick(key) {
+    if (!view || key === view.shownKey) return;
+    view.shownKey = key;
     results.style.setProperty("--d", "0s");
     markShown();
     renderProfile();
   }
+
+  input.addEventListener("input", (e) => {
+    if (composer.classList.contains("invalid") || send.classList.contains("invalid")) {
+      resetFeedback();
+      numEl.innerHTML = ARROW;
+      send.setAttribute("aria-label", LIVE ? "Cast your vote" : "Show where this ranks");
+      verdictEl.textContent = "";
+      verdictEl.classList.remove("show");
+      hint.textContent = hintFor(SPORTS[sport]);
+    }
+    send.classList.toggle("ready", input.value.trim().length > 0 && !busy);
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); if (!e.isTrusted) beh.trusted = false; submit(); }
+  });
+  send.addEventListener("click", (e) => { if (!e.isTrusted) beh.trusted = false; submit(); });
 
   selectSport(0, true);
 </script>

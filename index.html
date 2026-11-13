@@ -281,6 +281,68 @@
   .send.pop .num { animation: pop 0.5s var(--spring) both; }
   .num { display: grid; place-items: center; }
 
+  /* the five promises under the input: they draw themselves in, and the live ones keep moving */
+  .perks {
+    --base: 0.9s;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 22px 10px;
+    max-height: 340px;
+    margin: 24px 0 0;
+    padding: 8px 0;
+    overflow: hidden;
+    transition: max-height 0.7s var(--ease), margin 0.7s var(--ease), padding 0.7s var(--ease), opacity 0.45s, visibility 0s;
+  }
+  .stage.answered .perks {
+    max-height: 0;
+    margin-top: 0;
+    padding: 0;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: max-height 0.7s var(--ease), margin 0.7s var(--ease), padding 0.7s var(--ease), opacity 0.35s, visibility 0s 0.7s;
+  }
+  .perk {
+    flex: 0 1 112px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 11px;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.3;
+    color: var(--ink);
+    cursor: default;
+    transition: transform 0.35s var(--spring);
+  }
+  .perks.in .perk { animation: rise 0.6s calc(var(--base) + var(--i) * 0.11s) var(--ease) backwards; }
+  .perk svg { width: 36px; height: 36px; overflow: visible; color: var(--ink); transition: color 0.3s; }
+  @media (hover: hover) {
+    .perk:hover { transform: translateY(-3px); }
+    .perk:hover svg { color: var(--accent); }
+  }
+
+  @media (max-width: 480px) { .perk { flex-basis: 100px; } }
+
+  .perk .draw { stroke-dasharray: 1; }
+  .perk .tick { --o: 0.28s; }
+  .perk.go .draw { animation: pk-draw 0.7s calc(var(--base) + var(--i) * 0.11s + var(--o, 0s)) var(--ease) both; }
+  .perk .pop, .perk .wiggle, .perk .dot { transform-box: fill-box; transform-origin: center; }
+  .perk.go .pop { animation: pk-pop 0.6s calc(var(--base) + var(--i) * 0.11s) var(--spring) both; }
+  .perk.go .wiggle { animation: pk-wiggle 0.8s calc(var(--base) + var(--i) * 0.11s) var(--ease) both; }
+  .perk .blink { animation: pk-blink 1.1s steps(1) infinite; }
+  .perk .wave1, .perk .wave2 { animation: pk-wave 2.6s ease-in-out infinite; }
+  .perk .wave2 { animation-delay: 0.35s; }
+  .perk .dot { animation: pk-dot 2.6s ease-in-out infinite; }
+  @keyframes pk-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  @keyframes pk-pop { 0% { transform: scale(0); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+  @keyframes pk-wiggle { 0% { transform: scale(0) rotate(0); } 45% { transform: scale(1.12) rotate(-16deg); } 75% { transform: rotate(8deg); } 100% { transform: none; } }
+  @keyframes pk-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+  @keyframes pk-wave { 0%, 100% { opacity: 0.3; } 35% { opacity: 1; } }
+  @keyframes pk-dot { 0%, 100% { transform: scale(1); } 35% { transform: scale(1.3); } }
+
   .verdict { margin: 14px 0 0; min-height: 1.5em; text-align: center; font-size: 13px; color: var(--muted); }
   .verdict.bad { color: var(--bad); }
   .verdict.show { animation: rise 0.45s 0.25s var(--ease) backwards; }
@@ -682,6 +744,55 @@
     <div class="ts" id="ts" hidden></div>
     <p class="verdict" id="verdict" aria-live="polite"></p>
 
+    <ul class="perks in" id="perks" aria-label="How it works">
+      <li class="perk" style="--i:0">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <defs><mask id="pk-m1"><rect width="24" height="24" fill="#fff"/><path class="draw" d="M3.5 5l15.5 15.5" pathLength="1" stroke="#000" stroke-width="3.6" stroke-linecap="round" fill="none"/></mask></defs>
+          <g fill="currentColor" mask="url(#pk-m1)"><circle cx="12" cy="7.6" r="4"/><path d="M4 20.2c0-4 3.6-6.7 8-6.7s8 2.7 8 6.7c0 .7-.5 1.3-1.2 1.3H5.2c-.7 0-1.2-.6-1.2-1.3z"/></g>
+          <path class="draw" d="M3.5 5l15.5 15.5" pathLength="1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+        </svg>
+        <span>No sign-up</span>
+      </li>
+      <li class="perk" style="--i:1">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <defs>
+            <mask id="pk-m2a"><rect width="24" height="24" fill="#fff"/><circle cx="17.5" cy="17.5" r="6.2" fill="#000"/></mask>
+            <mask id="pk-m2b"><rect width="24" height="24" fill="#fff"/><path class="draw tick" d="M15.4 17.6l1.5 1.5 2.8-3" pathLength="1" fill="none" stroke="#000" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></mask>
+          </defs>
+          <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" mask="url(#pk-m2a)"><rect x="4" y="2.5" width="11" height="18.5" rx="2.6"/><path d="M8.3 5.5h2.4"/></g>
+          <circle class="pop" cx="17.5" cy="17.5" r="4.6" fill="currentColor" mask="url(#pk-m2b)"/>
+        </svg>
+        <span>One vote per device / year</span>
+      </li>
+      <li class="perk" style="--i:2">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <defs>
+            <mask id="pk-m3a"><rect width="24" height="24" fill="#fff"/><circle cx="17.5" cy="17.5" r="6.2" fill="#000"/></mask>
+            <mask id="pk-m3b"><rect width="24" height="24" fill="#fff"/><path d="M15.3 19.7l.5-1.8 2.7-2.7 1.3 1.3-2.7 2.7z" fill="#000"/></mask>
+          </defs>
+          <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" mask="url(#pk-m3a)"><rect x="2" y="5.5" width="18" height="11" rx="2.6"/><path class="blink" d="M6.5 8.6v4.8"/></g>
+          <circle class="wiggle" cx="17.5" cy="17.5" r="4.6" fill="currentColor" mask="url(#pk-m3b)"/>
+        </svg>
+        <span>Type any name</span>
+      </li>
+      <li class="perk" style="--i:3">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+          <circle class="dot" cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>
+          <path class="wave1" d="M7.6 7.6a6.2 6.2 0 0 0 0 8.8M16.4 7.6a6.2 6.2 0 0 1 0 8.8"/>
+          <path class="wave2" d="M4.6 4.6a10.4 10.4 0 0 0 0 14.8M19.4 4.6a10.4 10.4 0 0 1 0 14.8"/>
+        </svg>
+        <span>Live count</span>
+      </li>
+      <li class="perk" style="--i:4">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <defs><mask id="pk-m5"><rect width="24" height="24" fill="#fff"/><path class="draw tick" d="M8.6 12.2l2.4 2.4 4.4-4.6" pathLength="1" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></mask></defs>
+          <path class="pop" d="M12 2l8 3.2v6c0 5.2-3.4 9.3-8 10.8-4.6-1.5-8-5.6-8-10.8v-6z" fill="currentColor" mask="url(#pk-m5)"/>
+        </svg>
+        <span>Protected against bots</span>
+      </li>
+    </ul>
+
+
     <div class="results" id="results" hidden>
       <p class="rankhead"><span id="listName"></span><span class="legend" id="legend" hidden><i></i>your vote</span></p>
       <ol class="board" id="ranking"></ol>
@@ -697,7 +808,7 @@
      Until BOTH are filled in, the page runs in preview mode: it works, but nothing is recorded. */
   const CONFIG = {
     API: "https://api.thegoat.is",
-    TURNSTILE_SITEKEY: "0x4AAAAAAF-Owu6fH2sGAfF3",
+    TURNSTILE_SITEKEY: "",
   };
 
   const SPORTS = [
@@ -903,6 +1014,8 @@
   const profile = $("#profile"), ranking = $("#ranking"), listName = $("#listName"), legend = $("#legend");
   const pickerBtn = $("#pickerBtn"), pickerDot = $("#pickerDot"), pickerName = $("#pickerName"), pickerNoun = $("#pickerNoun"), menu = $("#menu");
   const ambient = $("#ambient");
+  const perksEl = $("#perks");
+  const perkItems = Array.from(perksEl.querySelectorAll(".perk"));
   const bgvideo = $("#bgvideo"), vid = $("#vid");
   const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches || (navigator.connection && navigator.connection.saveData);
   const finePointer = window.matchMedia("(pointer: fine)").matches;
@@ -1126,6 +1239,13 @@
     }
   }
 
+  function playPerks(base) {
+    perksEl.style.setProperty("--base", base);
+    bump(perksEl, "in");
+    perkItems.forEach((li) => bump(li, "go"));
+  }
+  perkItems.forEach((li) => li.addEventListener("pointerenter", () => { perksEl.style.setProperty("--base", "0s"); bump(li, "go"); }));
+
   function selectSport(i, focusInput) {
     if (i === sport) return;
     const s = SPORTS[i];
@@ -1154,6 +1274,7 @@
     verdictEl.classList.remove("show");
     results.hidden = true;
     stage.classList.remove("answered");
+    if (swapping) playPerks("0.5s");
 
     const showScene = () => scenes.forEach((el) => el.classList.toggle("on", el.dataset.sport === s.id));
     if (swapping) showScene(); else requestAnimationFrame(() => requestAnimationFrame(showScene));
@@ -1998,6 +2119,7 @@
   send.addEventListener("click", (e) => { if (!e.isTrusted) beh.trusted = false; submit(); });
 
   selectSport(0, true);
+  playPerks("0.9s");
 </script>
 </body>
 </html>

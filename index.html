@@ -1774,6 +1774,39 @@
       navigator.hardwareConcurrency || 0, navigator.deviceMemory || 0, navigator.maxTouchPoints || 0, navigator.platform, uad.platform || "", uad.mobile ? 1 : 0,
       mq("(color-gamut: p3)"), mq("(color-gamut: rec2020)"), mq("(dynamic-range: high)"), mq("(pointer: fine)"), mq("(pointer: coarse)"), mq("(hover: hover)")].join("|");
   }
+  /* machine traits: the same in every browser on one computer, and Brave does not scramble them */
+  function fpCoarse() {
+    const dpr = window.devicePixelRatio || 1;
+    const r8 = (v) => Math.round(v / 8) * 8;                 // physical pixels, rounded so browsers agree
+    const dims = [r8(screen.width * dpr), r8(screen.height * dpr)].sort((a, b) => a - b).join("x");
+    const ua = navigator.userAgent;
+    const touch = navigator.maxTouchPoints || 0;
+    const os = /Windows/.test(ua) ? "win"
+      : /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && touch > 1) ? "ios"
+      : /Macintosh|Mac OS X/.test(ua) ? "mac"
+      : /Android/.test(ua) ? "android" + ((ua.match(/Android (\d+)/) || [])[1] || "")
+      : /CrOS/.test(ua) ? "cros" : /Linux/.test(ua) ? "linux" : "other";
+    const mq = (q) => { try { return matchMedia(q).matches ? 1 : 0; } catch (e) { return 0; } };
+    return [dims, screen.colorDepth, Intl.DateTimeFormat().resolvedOptions().timeZone, (navigator.language || "").toLowerCase().split("-")[0],
+      os, touch > 0 ? 1 : 0, mq("(pointer: coarse)"), mq("(hover: hover)")].join("|");
+  }
+  /* is this a private / incognito window? 1 yes, 0 no, -1 unknown. Only ever used together with other signals. */
+  async function detectPrivate() {
+    try {
+      if (window.chrome && navigator.storage && navigator.storage.estimate) {
+        // Chromium (Chrome, Edge, Brave, Opera): a private window gets a small, memory-backed storage quota
+        const est = await navigator.storage.estimate();
+        const heap = (performance.memory && performance.memory.jsHeapSizeLimit) || 1073741824;
+        return est.quota < heap * 2 ? 1 : 0;
+      }
+      if (navigator.storage && navigator.storage.getDirectory) {
+        // Firefox and Safari switch the origin private file system off in private windows
+        try { await navigator.storage.getDirectory(); return 0; } catch (e) { return 1; }
+      }
+    } catch (e) { /* unknown */ }
+    return -1;
+  }
+
   async function fingerprint() {
     const raw = { c: fpCanvas(), g: fpWebgl(), a: await fpAudio(), f: fpFonts(), s: fpSystem() };
     const out = {};
@@ -1846,10 +1879,12 @@
       if (ch.status !== 200 || !ch.body.salt) { setBusy(false); showError("network"); return; }
       const nonce = await solvePow(ch.body.salt, ch.body.bits);
       const fp = await fingerprint();
+      const ck = await sha16(fpCoarse());
+      const pm = await detectPrivate();
       res = await vapi("/api/vote", { method: "POST", body: {
         category: s.id, title: id.full, ts: token,
         pow: { id: ch.body.id, salt: ch.body.salt, bits: ch.body.bits, exp: ch.body.exp, sig: ch.body.sig, nonce },
-        dev: getDev(), sig: collectSignals(), fp,
+        dev: getDev(), sig: collectSignals(), fp, ck, pm,
       } });
     } catch (e) { if (run === runId) { setBusy(false); showError(e && /turnstile/i.test(e.message) ? "verify" : "network"); } return; }
     if (run !== runId) return;

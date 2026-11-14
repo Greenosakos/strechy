@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- thegoat.is page 2026-11-14 -->
+<!-- thegoat.is page 2026-11-14c -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -1523,7 +1523,7 @@
 
   /* ---------- voting ---------- */
   const LIVE = !!(CONFIG.API && CONFIG.TURNSTILE_SITEKEY);
-  const PAGE_VERSION = "2026-11-14";
+  const PAGE_VERSION = "2026-11-14c";
   console.info("thegoat.is page " + PAGE_VERSION + (LIVE ? " (live)" : " (preview)"));
   const disp = (name) => cleanTitle(name);
   const CROSS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
@@ -1542,8 +1542,12 @@
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } },
   };
-  const voted = (() => { try { return JSON.parse(store.get("goat:voted:v1") || "{}"); } catch (e) { return {}; } })();
-  const saveVoted = () => store.set("goat:voted:v1", JSON.stringify(voted));
+  // one vote per device, category and calendar year (the year changes at midnight on 1 January, Prague time)
+  const SEASON = Number(new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Prague", year: "numeric" }).format(new Date()));
+  const votedKey = "goat:voted:" + SEASON;
+  const voted = (() => { try { return JSON.parse(store.get(votedKey) || "{}"); } catch (e) { return {}; } })();
+  const saveVoted = () => store.set(votedKey, JSON.stringify(voted));
+  try { localStorage.removeItem("goat:voted:v1"); localStorage.removeItem("goat:voted:" + (SEASON - 1)); } catch (e) { /* storage unavailable */ }
   const getDev = () => store.get("goat:dev:v1") || "";
 
   function placeholderFor(s) {
@@ -1554,7 +1558,7 @@
 
   function hintFor(s) {
     if (!LIVE) return "Press Enter to see where it ranks";
-    return voted[s.id] ? "Votes are final. You can still look up anyone." : "Press Enter to cast your vote";
+    return voted[s.id] ? "Votes are final until 1 January. You can still look up anyone." : "Press Enter to cast your vote";
   }
 
   async function vapi(path, opts) {
@@ -1803,8 +1807,18 @@
       : /Macintosh|Mac OS X/.test(ua) ? "mac"
       : /Android/.test(ua) ? "android" : /CrOS/.test(ua) ? "cros" : /Linux/.test(ua) ? "linux" : "other";
     const mq = (q) => { try { return matchMedia(q).matches ? 1 : 0; } catch (e) { return 0; } };
-    return [Intl.DateTimeFormat().resolvedOptions().timeZone, os, Math.round((window.devicePixelRatio || 1) * 100), screen.colorDepth,
-      touch > 0 ? 1 : 0, mq("(pointer: coarse)"), mq("(hover: hover)"), mq("(color-gamut: p3)"), mq("(dynamic-range: high)")].join("|");
+    // only traits that Brave, Safari and Firefox leave alone, also in private windows
+    return [Intl.DateTimeFormat().resolvedOptions().timeZone, os, Math.round((window.devicePixelRatio || 1) * 100),
+      touch > 0 ? 1 : 0, mq("(pointer: coarse)"), mq("(hover: hover)"), mq("(color-gamut: p3)")].join("|");
+  }
+  function browserFamily() {
+    const ua = navigator.userAgent;
+    if (/Edg(e|A|iOS)?\//.test(ua)) return "edge";
+    if (/OPR\/|Opera/.test(ua)) return "opera";
+    if (/Firefox\/|FxiOS/.test(ua)) return "firefox";
+    if (/Chrome\/|CriOS/.test(ua)) return "chrome";
+    if (/Safari\//.test(ua) && /Version\//.test(ua)) return "safari";
+    return "other";
   }
   async function detectBrave() {
     try { return navigator.brave && typeof navigator.brave.isBrave === "function" && (await navigator.brave.isBrave()) ? 1 : 0; } catch (e) { return 0; }
@@ -1821,8 +1835,26 @@
       }
       if (navigator.storage && navigator.storage.getDirectory) {
         // Firefox and Safari switch the origin private file system off in private windows
-        try { await navigator.storage.getDirectory(); return 0; } catch (e) { return 1; }
+        try { await navigator.storage.getDirectory(); } catch (e) { return 1; }
       }
+      if (browserFamily() === "safari" && window.indexedDB) {
+        // Safari private windows refuse to store a Blob in IndexedDB
+        const r = await new Promise((resolve) => {
+          const name = "goat-pm-" + Math.random().toString(36).slice(2);
+          let req;
+          try { req = indexedDB.open(name, 1); } catch (e) { return resolve(-1); }
+          const t = setTimeout(() => resolve(-1), 1500);
+          req.onerror = () => { clearTimeout(t); resolve(-1); };
+          req.onupgradeneeded = (ev) => {
+            const db = ev.target.result;
+            try { db.createObjectStore("t", { autoIncrement: true }).put(new Blob(["x"])); clearTimeout(t); resolve(0); }
+            catch (e) { clearTimeout(t); resolve(/BlobURLs are not yet supported/i.test(String(e && e.message)) ? 1 : -1); }
+            finally { try { db.close(); indexedDB.deleteDatabase(name); } catch (e) { /* ignore */ } }
+          };
+        });
+        if (r === 1) return 1;
+      }
+      if (navigator.storage && navigator.storage.getDirectory) return 0;
     } catch (e) { /* unknown */ }
     return -1;
   }
@@ -1831,7 +1863,7 @@
   // computed once per page load, used by the status check and by the vote
   let sigCache = null;
   function getSignals() {
-    if (!sigCache) sigCache = (async () => ({ fp: await fingerprint(), ck: await sha16(fpCoarse()), cl: await sha16(fpCoarseLow()), br: await detectBrave(), pm: await detectPrivate(), dt: isDesktop() }))().catch(() => ({}));
+    if (!sigCache) sigCache = (async () => ({ fp: await fingerprint(), ck: await sha16(fpCoarse()), cl: await sha16(fpCoarseLow()), br: await detectBrave(), bf: browserFamily(), pm: await detectPrivate(), dt: isDesktop() }))().catch(() => ({}));
     return sigCache;
   }
 
@@ -1841,7 +1873,7 @@
     if (!LIVE) return;
     try {
       const sg = await getSignals();
-      const r = await vapi("/api/status", { method: "POST", body: { category: s.id, dev: getDev(), fp: sg.fp, ck: sg.ck, cl: sg.cl, br: sg.br, pm: sg.pm, dt: sg.dt } });
+      const r = await vapi("/api/status", { method: "POST", body: { category: s.id, dev: getDev(), fp: sg.fp, ck: sg.ck, cl: sg.cl, br: sg.br, bf: sg.bf, pm: sg.pm, dt: sg.dt } });
       if (r.status !== 200) return;
       if (r.body.voted) {
         voted[s.id] = r.body.candidate ? { key: r.body.candidate.key, name: r.body.candidate.name } : (voted[s.id] || { key: "", name: "" });
@@ -1931,7 +1963,7 @@
       res = await vapi("/api/vote", { method: "POST", body: {
         category: s.id, title: id.full, ts: token,
         pow: { id: ch.body.id, salt: ch.body.salt, bits: ch.body.bits, exp: ch.body.exp, sig: ch.body.sig, nonce },
-        dev: getDev(), sig: collectSignals(), fp: sg.fp, ck: sg.ck, cl: sg.cl, br: sg.br, pm: sg.pm, dt: sg.dt,
+        dev: getDev(), sig: collectSignals(), fp: sg.fp, ck: sg.ck, cl: sg.cl, br: sg.br, bf: sg.bf, pm: sg.pm, dt: sg.dt,
       } });
     } catch (e) { if (run === runId) { setBusy(false); showError(e && /turnstile/i.test(e.message) ? "verify" : "network"); } return; }
     if (run !== runId) return;
@@ -2024,7 +2056,7 @@
       r.rel = r.votes / max;
     });
     const first = results.hidden;
-    view = { rows, total: board.total, shownKey: o.shownKey, mineKey: o.mineKey, from: o.from || null, live: o.live !== false };
+    view = { rows, total: board.total, season: board.season, shownKey: o.shownKey, mineKey: o.mineKey, from: o.from || null, live: o.live !== false };
 
     const shownRow = rows.find((r) => r.key === o.shownKey);
     composer.classList.add("done");
@@ -2043,17 +2075,17 @@
     } else if (o.kind === "browse") {
       verdictEl.textContent = mineName
         ? "Votes are final: you voted for " + mineName + ". Here’s how " + disp(shownRow.name) + " stands."
-        : "This device has already voted in " + s.tab + ". One vote per device. Here’s how " + disp(shownRow.name) + " stands.";
+        : "This device has already voted in " + s.tab + " this year. One vote per device per year. Here’s how " + disp(shownRow.name) + " stands.";
     } else {
       verdictEl.textContent = "Preview mode: votes aren’t recorded.";
     }
     verdictEl.classList.remove("bad");
     bump(verdictEl, "show");
-    hint.textContent = o.kind === "preview" ? "Try another name" : "Votes are final. You can still look up anyone.";
+    hint.textContent = o.kind === "preview" ? "Try another name" : "Votes are final until 1 January. You can still look up anyone.";
     input.placeholder = placeholderFor(s);
     if (o.kind === "voted") input.value = disp(shownRow.name);
     noteEl.textContent = LIVE
-      ? "One vote per device. Votes are checked before they count. We keep an anonymous device signal to stop duplicates. Photos: Wikimedia Commons."
+      ? "One vote per device per year. The ranking starts again on 1 January. Votes are checked before they count, and we keep an anonymous device signal to stop duplicates. Photos: Wikimedia Commons."
       : "Preview mode: votes aren’t recorded. Photos: Wikimedia Commons.";
 
     results.style.setProperty("--d", first ? "0.35s" : "0.05s");
@@ -2078,7 +2110,7 @@
   }
 
   function renderBoard() {
-    listName.textContent = view.live ? "Live ranking · " + plural(view.total, "vote") : "Starting ranking";
+    listName.textContent = view.live ? (view.season || SEASON) + " ranking · " + plural(view.total, "vote") : "Starting ranking";
     legend.hidden = !view.mineKey;
     avatars = avatars.filter((a) => a.scope !== "row");
     const lis = [];

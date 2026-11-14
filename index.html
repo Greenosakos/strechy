@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- thegoat.is page 2026-11-14c -->
+<!-- thegoat.is page 2026-11-14d -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -349,6 +349,76 @@
   .verdict.show { animation: rise 0.45s 0.25s var(--ease) backwards; }
 
   /* results */
+  /* several people share the typed name: pick the one you mean */
+  .pick { margin-top: 18px; animation: rise 0.45s var(--ease) backwards; }
+  .pick-title { margin: 0 2px 10px; font-size: 13.5px; color: var(--muted); text-wrap: balance; }
+  .pick-title b { color: var(--ink); font-weight: 500; }
+  .pick-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .pick-list li { animation: rise 0.45s calc(0.05s + var(--i, 0) * 55ms) var(--ease) backwards; }
+  .pick-row {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 60px;
+    padding: 8px 8px 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card);
+    transition: border-color 0.25s, background-color 0.25s;
+  }
+  .pick-row .av { width: 40px; height: 40px; }
+  .pick-row .who { min-width: 0; }
+  .pick-row .who b { display: block; font-weight: 500; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pick-row .who span { display: -webkit-box; font-size: 12.5px; line-height: 1.35; color: var(--muted); overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .pick-row .who .tag { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px; font-size: 11px; line-height: 17px; vertical-align: 1px; background: var(--hover); color: var(--muted); }
+  .pick-go {
+    height: 34px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.25s var(--spring), filter 0.2s;
+  }
+  .pick-go:hover { filter: brightness(1.08); }
+  .pick-go:active { transform: scale(0.94); }
+  .pick-go:focus-visible, .pick-cancel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (hover: hover) { .pick-row:hover { border-color: var(--accent); } }
+  .pick-cancel {
+    display: block;
+    margin: 12px auto 0;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--muted);
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .pick-cancel:hover { color: var(--ink); background: var(--hover); }
+
+  /* #debug: what this browser sends, to compare a normal and a private window */
+  .dbg {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    z-index: 50;
+    max-height: 46vh;
+    overflow: auto;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.86);
+    color: #e8e8e8;
+    font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
   .results { margin-top: 22px; }
   .rankhead {
     display: flex;
@@ -751,6 +821,12 @@
     <div class="ts" id="ts" hidden></div>
     <p class="verdict" id="verdict" aria-live="polite"></p>
 
+    <section class="pick" id="pick" hidden aria-labelledby="pickTitle">
+      <p class="pick-title" id="pickTitle"></p>
+      <ul class="pick-list" id="pickList"></ul>
+      <button class="pick-cancel" id="pickCancel" type="button">None of these, let me type it again</button>
+    </section>
+
     <ul class="perks in" id="perks" aria-label="How it works">
       <li class="perk" style="--i:0">
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1021,6 +1097,7 @@
   const profile = $("#profile"), ranking = $("#ranking"), listName = $("#listName"), legend = $("#legend");
   const pickerBtn = $("#pickerBtn"), pickerDot = $("#pickerDot"), pickerName = $("#pickerName"), pickerNoun = $("#pickerNoun"), menu = $("#menu");
   const ambient = $("#ambient");
+  const pickEl = $("#pick"), pickTitle = $("#pickTitle"), pickList = $("#pickList");
   const perksEl = $("#perks");
   const perkItems = Array.from(perksEl.querySelectorAll(".perk"));
   const bgvideo = $("#bgvideo"), vid = $("#vid");
@@ -1294,6 +1371,7 @@
     verdictEl.textContent = "";
     verdictEl.classList.remove("show");
     results.hidden = true;
+    pickEl.hidden = true;
     stage.classList.remove("answered");
     if (swapping) playPerks("0.5s");
 
@@ -1523,7 +1601,7 @@
 
   /* ---------- voting ---------- */
   const LIVE = !!(CONFIG.API && CONFIG.TURNSTILE_SITEKEY);
-  const PAGE_VERSION = "2026-11-14c";
+  const PAGE_VERSION = "2026-11-14d";
   console.info("thegoat.is page " + PAGE_VERSION + (LIVE ? " (live)" : " (preview)"));
   const disp = (name) => cleanTitle(name);
   const CROSS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
@@ -1820,6 +1898,16 @@
     if (/Safari\//.test(ua) && /Version\//.test(ua)) return "safari";
     return "other";
   }
+  /* system, time zone and device class only: used by the server for private windows on the same home network,
+     because a private window on a phone can change almost every other trait */
+  function fpMicro() {
+    const ua = navigator.userAgent;
+    const touch = navigator.maxTouchPoints || 0;
+    const os = /iPhone|iPod/.test(ua) ? "iphone" : /iPad/.test(ua) || (/Macintosh/.test(ua) && touch > 1) ? "ipad"
+      : /Android/.test(ua) ? (/Mobile/.test(ua) ? "android-phone" : "android-tablet")
+      : /Windows/.test(ua) ? "win" : /Macintosh|Mac OS X/.test(ua) ? "mac" : /CrOS/.test(ua) ? "cros" : /Linux/.test(ua) ? "linux" : "other";
+    return [os, Intl.DateTimeFormat().resolvedOptions().timeZone].join("|");
+  }
   async function detectBrave() {
     try { return navigator.brave && typeof navigator.brave.isBrave === "function" && (await navigator.brave.isBrave()) ? 1 : 0; } catch (e) { return 0; }
   }
@@ -1863,7 +1951,7 @@
   // computed once per page load, used by the status check and by the vote
   let sigCache = null;
   function getSignals() {
-    if (!sigCache) sigCache = (async () => ({ fp: await fingerprint(), ck: await sha16(fpCoarse()), cl: await sha16(fpCoarseLow()), br: await detectBrave(), bf: browserFamily(), pm: await detectPrivate(), dt: isDesktop() }))().catch(() => ({}));
+    if (!sigCache) sigCache = (async () => ({ fp: await fingerprint(), ck: await sha16(fpCoarse()), cl: await sha16(fpCoarseLow()), cm: await sha16(fpMicro()), br: await detectBrave(), bf: browserFamily(), pm: await detectPrivate(), dt: isDesktop() }))().catch(() => ({}));
     return sigCache;
   }
 
@@ -1873,7 +1961,7 @@
     if (!LIVE) return;
     try {
       const sg = await getSignals();
-      const r = await vapi("/api/status", { method: "POST", body: { category: s.id, dev: getDev(), fp: sg.fp, ck: sg.ck, cl: sg.cl, br: sg.br, bf: sg.bf, pm: sg.pm, dt: sg.dt } });
+      const r = await vapi("/api/status", { method: "POST", body: { category: s.id, dev: getDev(), fp: sg.fp, ck: sg.ck, cl: sg.cl, cm: sg.cm, br: sg.br, bf: sg.bf, pm: sg.pm, dt: sg.dt } });
       if (r.status !== 200) return;
       if (r.body.voted) {
         voted[s.id] = r.body.candidate ? { key: r.body.candidate.key, name: r.body.candidate.name } : (voted[s.id] || { key: "", name: "" });
@@ -1920,14 +2008,135 @@
     }
   }
 
+  /* ---------- several people share a name: let the voter pick the one they mean ---------- */
+  const SPORT_WORDS = {
+    basketball: /basketball|\bNBA\b|\bWNBA\b/i,
+    football: /American football|\bNFL\b|quarterback|running back|wide receiver|linebacker|tight end|cornerback/i,
+    hockey: /ice hockey|\bNHL\b|\bKHL\b/i,
+    baseball: /baseball|\bMLB\b|pitcher|outfielder|infielder|catcher/i,
+    soccer: /footballer|association football|soccer/i,
+    f1: /racing driver|Formula One|\bF1\b/i,
+    rap: /rapper|hip[ -]hop/i,
+    cricket: /cricketer|cricket/i,
+  };
+  const ROLE_WORDS = /player|coach|footballer|cricketer|rapper|driver|quarterback|pitcher|outfielder|infielder|catcher|linebacker|cornerback|receiver|athlete|executive|manager|guard|forward|centre|center|defenceman|defenseman|goaltender|goalkeeper|winger|striker|midfielder|defender|musician|singer|producer|songwriter|commentator|broadcaster/i;
+  const NOT_PERSON = /\b(team|league|club|season|stadium|arena|tournament|championship|award|franchise|draft|game|match|list|album|song|single|film|series|company|crash|disambiguation)\b/i;
+
+  /* the typed text is exactly a starting-list player (full name, nickname, or both names in any order) */
+  function seedExact(s, q) {
+    const n = norm(q);
+    if (!n) return -1;
+    const sorted = (t) => t.split(" ").filter(Boolean).sort().join(" ");
+    return s.players.findIndex((p) => norm(p.name) === n || (p.aka || []).some((a) => norm(a) === n) || sorted(norm(p.name)) === sorted(n));
+  }
+  /* every starting-list player whose name fits what was typed */
+  function seedMatches(s, q) {
+    const tokens = norm(q).split(" ").filter(Boolean);
+    if (!tokens.length) return [];
+    return s.players.map((p, i) => i).filter((i) => titleMatches(tokens, s.players[i].name));
+  }
+  const namesakeMemo = new Map();
+  async function findNamesakes(q, s) {
+    const clean = q.replace(/[|#<>\[\]{}]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+    const key = s.id + ":" + clean.toLowerCase();
+    if (namesakeMemo.has(key)) return namesakeMemo.get(key);
+    const tokens = norm(clean).split(" ").filter(Boolean);
+    const d = await api(WP, { generator: "search", gsrsearch: clean + " " + CTX[s.id], gsrlimit: "20", gsrnamespace: "0",
+      prop: "pageimages|description", piprop: "thumbnail|name", pithumbsize: "256" });
+    const out = ((d.query && d.query.pages) || []).sort(byIndex)
+      .filter((p) => p.description && SPORT_WORDS[s.id].test(p.description) && ROLE_WORDS.test(p.description) && !NOT_PERSON.test(p.description) && titleMatches(tokens, p.title))
+      .map((p) => ({ full: p.title, name: cleanTitle(p.title), desc: p.description, info: p.thumbnail ? wikiInfo(p) : null }));
+    namesakeMemo.set(key, out);
+    return out;
+  }
+
   async function identify(q, s) {
-    const idx = findMatch(s, q);
-    if (idx >= 0) { const n = s.players[idx].name; return { status: "ok", full: n, name: n, desc: "" }; }
+    const exact = seedExact(s, q);
+    if (exact >= 0) { const n = s.players[exact].name; return { status: "ok", full: n, name: n, desc: "" }; }
     if (looksLikeGibberish(q)) return { status: "invalid", kind: "shape" };
-    const r = await resolveGuess(q, s);
+    let found = null;
+    try { found = await findNamesakes(q, s); } catch (e) { found = null; }        // null: Wikipedia could not be reached
+    if (found) {
+      const seen = new Map(), all = [];
+      const add = (c) => {
+        const k = keyOf(cleanTitle(c.full));
+        if (seen.has(k)) { const o = seen.get(k); o.desc = o.desc || c.desc; o.info = o.info || c.info; return; }
+        seen.set(k, c); all.push(c);
+      };
+      seedMatches(s, q).forEach((i) => add({ full: s.players[i].name, name: s.players[i].name, desc: "", info: null, seed: i }));
+      found.forEach(add);
+      if (all.length > 1) return { status: "choose", list: all.slice(0, 8) };
+      if (all.length === 1) return { status: "ok", full: all[0].full, name: all[0].name, desc: all[0].desc || "" };
+    } else {
+      const idx = findMatch(s, q);                                                   // offline: best guess from the starting list
+      if (idx >= 0) { const n = s.players[idx].name; return { status: "ok", full: n, name: n, desc: "" }; }
+    }
+    const r = await resolveGuess(q, s);                                              // anyone else with a biography
     if (r.status === "invalid") return { status: "invalid", kind: "unknown" };
     return { status: "ok", full: r.full || tidy(q), name: r.title || tidy(q), desc: r.desc || "" };
   }
+
+  function showChooser(list, run, q) {
+    const s = SPORTS[sport];
+    const voting = LIVE && !voted[s.id];
+    results.hidden = true;
+    stage.classList.add("answered");
+    send.classList.remove("ready", "busy", "invalid", "answered", "unranked");
+    numEl.innerHTML = ARROW;
+    verdictEl.textContent = "";
+    verdictEl.classList.remove("show", "bad");
+    pickTitle.innerHTML = "";
+    const b = document.createElement("b");
+    b.textContent = "“" + q + "”";
+    pickTitle.append(list.length + " " + s.noun + "s match ", b, voting ? ". Which one do you want to vote for?" : ". Which one do you mean?");
+    const items = list.map((c, i) => {
+      const li = document.createElement("li");
+      li.style.setProperty("--i", i);
+      const row = document.createElement("div");
+      row.className = "pick-row";
+      const av = makeAv(c.name, false);
+      if (c.info) setPhoto(av, c.info);
+      else {
+        const hit = cacheGet(c.full);
+        if (hit) setPhoto(av, hit);
+        else exactBatch([c.full]).then(() => setPhoto(av, cacheGet(c.full))).catch(() => setPhoto(av, null));
+      }
+      const who = document.createElement("div");
+      who.className = "who";
+      const nm = document.createElement("b");
+      nm.textContent = disp(c.name);
+      const ds = document.createElement("span");
+      ds.textContent = c.desc || (c.seed != null ? "In our starting list" : "");
+      who.append(nm, ds);
+      const go = document.createElement("button");
+      go.type = "button";
+      go.className = "pick-go";
+      go.textContent = voting ? "Vote" : "Show";
+      go.setAttribute("aria-label", (voting ? "Vote for " : "Show ") + disp(c.name) + (c.desc ? ", " + c.desc : ""));
+      go.addEventListener("click", (e) => {
+        if (!e.isTrusted) beh.trusted = false;
+        if (run !== runId || busy) return;
+        pickEl.hidden = true;
+        input.value = disp(c.name);
+        proceed({ status: "ok", full: c.full, name: c.name, desc: c.desc || "" }, run);
+      });
+      row.append(av, who, go);
+      li.append(row);
+      return li;
+    });
+    pickList.replaceChildren(...items);
+    pickEl.hidden = false;
+    bump(pickEl, "pick");
+    if (!finePointer) input.blur();
+    pickEl.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "nearest" });
+  }
+  $("#pickCancel").addEventListener("click", () => {
+    pickEl.hidden = true;
+    stage.classList.remove("answered");
+    hint.textContent = hintFor(SPORTS[sport]);
+    input.focus();
+    input.select();
+  });
 
   async function submit() {
     if (busy) return;
@@ -1937,12 +2146,21 @@
     runId++;
     const run = runId;
     resetFeedback();
-    setBusy(true, findMatch(s, q) >= 0 ? "" : "Looking it up…");
+    pickEl.hidden = true;
+    setBusy(true, seedExact(s, q) >= 0 ? "" : "Looking it up…");
     let id;
     try { id = await identify(q, s); } catch (e) { id = { status: "invalid", kind: "unknown" }; }
     if (run !== runId) return;
     if (id.status === "invalid") { setBusy(false); showError(id.kind); return; }
-    if (!LIVE) { setBusy(false); showPreview(id, run); return; }
+    if (id.status === "choose") { setBusy(false); showChooser(id.list, run, q); return; }
+    setBusy(false);
+    await proceed(id, run);
+  }
+
+  async function proceed(id, run) {
+    const s = SPORTS[sport];
+    pickEl.hidden = true;
+    if (!LIVE) { showPreview(id, run); return; }
     if (voted[s.id]) await browse(id, run); else await castVote(id, run);
     beh.first = 0; beh.keys = 0;
   }
@@ -1963,7 +2181,7 @@
       res = await vapi("/api/vote", { method: "POST", body: {
         category: s.id, title: id.full, ts: token,
         pow: { id: ch.body.id, salt: ch.body.salt, bits: ch.body.bits, exp: ch.body.exp, sig: ch.body.sig, nonce },
-        dev: getDev(), sig: collectSignals(), fp: sg.fp, ck: sg.ck, cl: sg.cl, br: sg.br, bf: sg.bf, pm: sg.pm, dt: sg.dt,
+        dev: getDev(), sig: collectSignals(), fp: sg.fp, ck: sg.ck, cl: sg.cl, cm: sg.cm, br: sg.br, bf: sg.bf, pm: sg.pm, dt: sg.dt,
       } });
     } catch (e) { if (run === runId) { setBusy(false); showError(e && /turnstile/i.test(e.message) ? "verify" : "network"); } return; }
     if (run !== runId) return;
@@ -2030,6 +2248,7 @@
     bump(verdictEl, "show");
     hint.textContent = "Try another name";
     results.hidden = true;
+    pickEl.hidden = true;
     stage.classList.remove("answered");
     if (composer.animate && !reducedMotion) {
       composer.animate(
@@ -2093,6 +2312,7 @@
     renderBoard();
     renderProfile();
     results.hidden = false;
+    pickEl.hidden = true;
     stage.classList.add("answered");
     if (!finePointer) input.blur();
     loadPhotos(run);
@@ -2237,6 +2457,7 @@
   }
 
   input.addEventListener("input", (e) => {
+    if (!pickEl.hidden) { pickEl.hidden = true; stage.classList.remove("answered"); }
     if (composer.classList.contains("invalid") || send.classList.contains("invalid")) {
       resetFeedback();
       numEl.innerHTML = ARROW;
@@ -2254,6 +2475,28 @@
 
   selectSport(0, true);
   playPerks("0.9s");
+
+  /* open the site with #debug at the end of the address to see what this browser sends */
+  if (location.hash === "#debug") (async () => {
+    const box = document.createElement("pre");
+    box.className = "dbg";
+    box.textContent = "measuring…";
+    document.body.appendChild(box);
+    const sg = await getSignals();
+    let net = "?";
+    try { const r = await vapi("/api/version"); net = r.body.ip + " " + r.body.net + " (server " + r.body.version + ")"; } catch (e) { net = "unreachable"; }
+    const sh = (v) => (v ? String(v).slice(0, 8) : "–");
+    box.textContent = [
+      "page " + PAGE_VERSION + " · year " + SEASON,
+      "network  " + net,
+      "browser  " + (sg.bf || "?") + (sg.br ? " (Brave)" : "") + " · private " + sg.pm + " · desktop " + sg.dt,
+      "fp       c " + sh(sg.fp && sg.fp.c) + "  g " + sh(sg.fp && sg.fp.g) + "  a " + sh(sg.fp && sg.fp.a) + "  f " + sh(sg.fp && sg.fp.f) + "  s " + sh(sg.fp && sg.fp.s),
+      "machine  " + sh(sg.ck) + "  " + fpCoarse(),
+      "reduced  " + sh(sg.cl) + "  " + fpCoarseLow(),
+      "kind     " + sh(sg.cm) + "  " + fpMicro(),
+      "screen   " + screen.width + "x" + screen.height + " @" + window.devicePixelRatio + " · window " + innerWidth + "x" + innerHeight,
+    ].join("\n");
+  })();
 </script>
 </body>
 </html>

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- thegoat.is page 2026-11-13b -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -1299,6 +1300,7 @@
     const showScene = () => scenes.forEach((el) => el.classList.toggle("on", el.dataset.sport === s.id));
     if (swapping) showScene(); else requestAnimationFrame(() => requestAnimationFrame(showScene));
     if (focusInput && finePointer) input.focus({ preventScroll: true });
+    if (typeof checkStatus === "function") checkStatus(s);
   }
 
   /* ---------- photos: Wikipedia lead image (hosted on Commons), else a Commons file search ---------- */
@@ -1521,6 +1523,8 @@
 
   /* ---------- voting ---------- */
   const LIVE = !!(CONFIG.API && CONFIG.TURNSTILE_SITEKEY);
+  const PAGE_VERSION = "2026-11-13b";
+  console.info("thegoat.is page " + PAGE_VERSION + (LIVE ? " (live)" : " (preview)"));
   const disp = (name) => cleanTitle(name);
   const CROSS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
   const SPIN = '<span class="spin"></span>';
@@ -1807,6 +1811,35 @@
     return -1;
   }
 
+  const isDesktop = () => ((navigator.maxTouchPoints || 0) === 0 && matchMedia("(hover: hover) and (pointer: fine)").matches ? 1 : 0);
+  // computed once per page load, used by the status check and by the vote
+  let sigCache = null;
+  function getSignals() {
+    if (!sigCache) sigCache = (async () => ({ fp: await fingerprint(), ck: await sha16(fpCoarse()), pm: await detectPrivate(), dt: isDesktop() }))().catch(() => ({}));
+    return sigCache;
+  }
+
+  /* when the page opens (and on every sport switch): has this device already voted here?
+     So a new browser or a private window shows "already voted" before anyone types. The server decides. */
+  async function checkStatus(s) {
+    if (!LIVE) return;
+    try {
+      const sg = await getSignals();
+      const r = await vapi("/api/status", { method: "POST", body: { category: s.id, dev: getDev(), fp: sg.fp, ck: sg.ck, pm: sg.pm, dt: sg.dt } });
+      if (r.status !== 200) return;
+      if (r.body.voted) {
+        voted[s.id] = r.body.candidate ? { key: r.body.candidate.key, name: r.body.candidate.name } : (voted[s.id] || { key: "", name: "" });
+      } else if (voted[s.id]) {
+        delete voted[s.id];                                 // the server has no vote (e.g. test votes were cleared): forget it here too
+      } else return;
+      saveVoted();
+      if (SPORTS[sport] === s && results.hidden && !busy) {
+        input.placeholder = placeholderFor(s);
+        hint.textContent = hintFor(s);
+      }
+    } catch (e) { /* the vote itself is still checked by the server */ }
+  }
+
   async function fingerprint() {
     const raw = { c: fpCanvas(), g: fpWebgl(), a: await fpAudio(), f: fpFonts(), s: fpSystem() };
     const out = {};
@@ -1878,13 +1911,11 @@
       if (ch.status === 429) { setBusy(false); showError("rate"); return; }
       if (ch.status !== 200 || !ch.body.salt) { setBusy(false); showError("network"); return; }
       const nonce = await solvePow(ch.body.salt, ch.body.bits);
-      const fp = await fingerprint();
-      const ck = await sha16(fpCoarse());
-      const pm = await detectPrivate();
+      const sg = await getSignals();
       res = await vapi("/api/vote", { method: "POST", body: {
         category: s.id, title: id.full, ts: token,
         pow: { id: ch.body.id, salt: ch.body.salt, bits: ch.body.bits, exp: ch.body.exp, sig: ch.body.sig, nonce },
-        dev: getDev(), sig: collectSignals(), fp, ck, pm,
+        dev: getDev(), sig: collectSignals(), fp: sg.fp, ck: sg.ck, pm: sg.pm, dt: sg.dt,
       } });
     } catch (e) { if (run === runId) { setBusy(false); showError(e && /turnstile/i.test(e.message) ? "verify" : "network"); } return; }
     if (run !== runId) return;

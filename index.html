@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- thegoat.is page 2026-11-13b -->
+<!-- thegoat.is page 2026-11-14 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -1523,7 +1523,7 @@
 
   /* ---------- voting ---------- */
   const LIVE = !!(CONFIG.API && CONFIG.TURNSTILE_SITEKEY);
-  const PAGE_VERSION = "2026-11-13b";
+  const PAGE_VERSION = "2026-11-14";
   console.info("thegoat.is page " + PAGE_VERSION + (LIVE ? " (live)" : " (preview)"));
   const disp = (name) => cleanTitle(name);
   const CROSS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
@@ -1794,6 +1794,22 @@
     return [dims, screen.colorDepth, Intl.DateTimeFormat().resolvedOptions().timeZone, (navigator.language || "").toLowerCase().split("-")[0],
       os, touch > 0 ? 1 : 0, mq("(pointer: coarse)"), mq("(hover: hover)")].join("|");
   }
+  /* the same traits without screen size and language: Brave reports the window size instead of the screen and only one language */
+  function fpCoarseLow() {
+    const ua = navigator.userAgent;
+    const touch = navigator.maxTouchPoints || 0;
+    const os = /Windows/.test(ua) ? "win"
+      : /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && touch > 1) ? "ios"
+      : /Macintosh|Mac OS X/.test(ua) ? "mac"
+      : /Android/.test(ua) ? "android" : /CrOS/.test(ua) ? "cros" : /Linux/.test(ua) ? "linux" : "other";
+    const mq = (q) => { try { return matchMedia(q).matches ? 1 : 0; } catch (e) { return 0; } };
+    return [Intl.DateTimeFormat().resolvedOptions().timeZone, os, Math.round((window.devicePixelRatio || 1) * 100), screen.colorDepth,
+      touch > 0 ? 1 : 0, mq("(pointer: coarse)"), mq("(hover: hover)"), mq("(color-gamut: p3)"), mq("(dynamic-range: high)")].join("|");
+  }
+  async function detectBrave() {
+    try { return navigator.brave && typeof navigator.brave.isBrave === "function" && (await navigator.brave.isBrave()) ? 1 : 0; } catch (e) { return 0; }
+  }
+
   /* is this a private / incognito window? 1 yes, 0 no, -1 unknown. Only ever used together with other signals. */
   async function detectPrivate() {
     try {
@@ -1815,7 +1831,7 @@
   // computed once per page load, used by the status check and by the vote
   let sigCache = null;
   function getSignals() {
-    if (!sigCache) sigCache = (async () => ({ fp: await fingerprint(), ck: await sha16(fpCoarse()), pm: await detectPrivate(), dt: isDesktop() }))().catch(() => ({}));
+    if (!sigCache) sigCache = (async () => ({ fp: await fingerprint(), ck: await sha16(fpCoarse()), cl: await sha16(fpCoarseLow()), br: await detectBrave(), pm: await detectPrivate(), dt: isDesktop() }))().catch(() => ({}));
     return sigCache;
   }
 
@@ -1825,7 +1841,7 @@
     if (!LIVE) return;
     try {
       const sg = await getSignals();
-      const r = await vapi("/api/status", { method: "POST", body: { category: s.id, dev: getDev(), fp: sg.fp, ck: sg.ck, pm: sg.pm, dt: sg.dt } });
+      const r = await vapi("/api/status", { method: "POST", body: { category: s.id, dev: getDev(), fp: sg.fp, ck: sg.ck, cl: sg.cl, br: sg.br, pm: sg.pm, dt: sg.dt } });
       if (r.status !== 200) return;
       if (r.body.voted) {
         voted[s.id] = r.body.candidate ? { key: r.body.candidate.key, name: r.body.candidate.name } : (voted[s.id] || { key: "", name: "" });
@@ -1915,7 +1931,7 @@
       res = await vapi("/api/vote", { method: "POST", body: {
         category: s.id, title: id.full, ts: token,
         pow: { id: ch.body.id, salt: ch.body.salt, bits: ch.body.bits, exp: ch.body.exp, sig: ch.body.sig, nonce },
-        dev: getDev(), sig: collectSignals(), fp: sg.fp, ck: sg.ck, pm: sg.pm, dt: sg.dt,
+        dev: getDev(), sig: collectSignals(), fp: sg.fp, ck: sg.ck, cl: sg.cl, br: sg.br, pm: sg.pm, dt: sg.dt,
       } });
     } catch (e) { if (run === runId) { setBusy(false); showError(e && /turnstile/i.test(e.message) ? "verify" : "network"); } return; }
     if (run !== runId) return;

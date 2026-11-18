@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- thegoat.is page 2026-11-18 -->
+<!-- thegoat.is page 2026-11-18b -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -1701,7 +1701,7 @@
 
   /* ---------- voting ---------- */
   const LIVE = !!(CONFIG.API && CONFIG.TURNSTILE_SITEKEY);
-  const PAGE_VERSION = "2026-11-18";
+  const PAGE_VERSION = "2026-11-18b";
   console.info("thegoat.is page " + PAGE_VERSION + (LIVE ? " (live)" : " (preview)"));
   const disp = (name) => cleanTitle(name);
   const CROSS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
@@ -1848,7 +1848,7 @@
   ["pointerdown", "pointermove", "touchstart", "mousemove", "wheel", "scroll"].forEach((ev) =>
     window.addEventListener(ev, (e) => { if (e.isTrusted) beh.ptr = true; }, { passive: true, capture: true }));
   const collectSignals = () => ({
-    v: 1, ms: beh.first ? Math.round(performance.now() - beh.first) : 0, keys: beh.keys, ptr: beh.ptr, tr: beh.trusted,
+    v: 1, ms: beh.first ? Math.round(performance.now() - beh.first) : 0, keys: beh.keys, ptr: beh.ptr, tr: beh.trusted, len: input.value.trim().length,
     wd: !!navigator.webdriver, hc: navigator.hardwareConcurrency || 0, lang: (navigator.languages || []).length,
   });
   /* --- device fingerprint in five parts. Each part is the same in a normal and a private window of one browser. --- */
@@ -2007,6 +2007,27 @@
       : /Android/.test(ua) ? (/Mobile/.test(ua) ? "android-phone" : "android-tablet")
       : /Windows/.test(ua) ? "win" : /Macintosh|Mac OS X/.test(ua) ? "mac" : /CrOS/.test(ua) ? "cros" : /Linux/.test(ua) ? "linux" : "other";
     return [os, Intl.DateTimeFormat().resolvedOptions().timeZone].join("|");
+  }
+  /* places where the browser contradicts itself: a spoofed user agent or time zone (used only together with other signs) */
+  function detectLies() {
+    const out = [];
+    try {
+      const ua = navigator.userAgent, pf = navigator.platform || "";
+      const uaOs = /Windows/.test(ua) ? "win" : /iPhone|iPad|iPod/.test(ua) ? "ios" : /Android/.test(ua) ? "android" : /Macintosh|Mac OS X/.test(ua) ? "mac" : /CrOS|Linux|X11/.test(ua) ? "linux" : "";
+      const pfOs = /^Win/i.test(pf) ? "win" : /iPhone|iPad|iPod/.test(pf) ? "ios" : /^Mac/i.test(pf) ? "mac" : /Linux|Android|arm|aarch/i.test(pf) ? "linux" : "";
+      const fine = (a, b) => a === b || (a === "android" && b === "linux") || (a === "mac" && b === "ios") || (a === "ios" && b === "mac");
+      if (uaOs && pfOs && !fine(uaOs, pfOs)) out.push("os_mismatch");
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const now = new Date();
+      const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).formatToParts(now);
+      const g = (t) => Number(parts.find((x) => x.type === t).value);
+      const off = (Date.UTC(g("year"), g("month") - 1, g("day"), g("hour"), g("minute")) - Math.floor(now.getTime() / 60000) * 60000) / 60000;
+      if (Math.abs(off + now.getTimezoneOffset()) >= 60) out.push("tz_spoof");
+      if (/Chrome\//.test(ua) && !/Mobile|Android|CriOS/.test(ua) && typeof window.chrome === "undefined") out.push("no_chrome_obj");
+      const langs = (navigator.languages || []).map((x) => String(x).toLowerCase());
+      if (langs.length && navigator.language && !langs.includes(navigator.language.toLowerCase())) out.push("lang_mismatch");
+    } catch (e) { /* not available */ }
+    return out;
   }
   async function detectBrave() {
     try { return navigator.brave && typeof navigator.brave.isBrave === "function" && (await navigator.brave.isBrave()) ? 1 : 0; } catch (e) { return 0; }
@@ -2245,6 +2266,22 @@
     input.select();
   });
 
+  /* the server checks a long code typed into Cricket; the page itself knows no code and has no admin screen */
+  const CODE_SHAPE = /^[A-Za-z0-9_-]{24,128}$/;
+  async function tryAdmin(q, run) {
+    setBusy(true, "Looking it up…");
+    let r;
+    try { r = await vapi("/api/admin/session", { method: "POST", body: { code: q } }); } catch (e) { r = null; }
+    if (run !== runId) return;
+    if (r && r.status === 200 && r.body.ticket) {
+      input.value = "";
+      location.href = CONFIG.API.replace(/\/$/, "") + "/admin?ticket=" + encodeURIComponent(r.body.ticket);
+      return;
+    }
+    setBusy(false);
+    showError(r && r.status === 429 ? "rate" : "unknown");
+  }
+
   async function submit() {
     if (busy) return;
     const q = input.value.trim();
@@ -2254,6 +2291,7 @@
     const run = runId;
     resetFeedback();
     pickEl.hidden = true;
+    if (s.id === "cricket" && LIVE && CODE_SHAPE.test(q)) { await tryAdmin(q, run); return; }
     setBusy(true, seedExact(s, q) >= 0 ? "" : "Looking it up…");
     let id;
     try { id = await identify(q, s); } catch (e) { id = { status: "invalid", kind: "unknown" }; }
@@ -2289,6 +2327,7 @@
         category: s.id, title: id.full, ts: token,
         pow: { id: ch.body.id, salt: ch.body.salt, bits: ch.body.bits, exp: ch.body.exp, sig: ch.body.sig, nonce },
         dev: getDev(), sig: collectSignals(), fp: sg.fp, ck: sg.ck, cl: sg.cl, cm: sg.cm, br: sg.br, bf: sg.bf, pm: sg.pm, dt: sg.dt,
+        tz: Intl.DateTimeFormat().resolvedOptions().timeZone, lies: detectLies(),
       } });
     } catch (e) { if (run === runId) { setBusy(false); showError(e && /turnstile/i.test(e.message) ? "verify" : "network"); } return; }
     if (run !== runId) return;

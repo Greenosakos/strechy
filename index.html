@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- thegoat.is page 2026-11-14d -->
+<!-- thegoat.is page 2026-11-18 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -127,7 +127,9 @@
     max-width: 720px;
     min-height: 100dvh;
     margin: 0 auto;
-    padding: clamp(64px, 30vh, 320px) clamp(16px, 5vw, 32px) 64px;
+    padding: clamp(64px, 30vh, 320px) clamp(16px, 5vw, 32px) 28px;
+    display: flex;
+    flex-direction: column;
     transition: padding-top 0.8s var(--ease);
   }
   .stage.answered { padding-top: clamp(80px, 9vh, 100px); }
@@ -290,20 +292,8 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 18px 8px;
-    max-height: 300px;
-    margin: 16px 0 0;
-    padding: 8px 0;
-    overflow: hidden;
-    transition: max-height 0.7s var(--ease), margin 0.7s var(--ease), padding 0.7s var(--ease), opacity 0.45s, visibility 0s;
-  }
-  .stage.answered .perks {
-    max-height: 0;
-    margin-top: 0;
-    padding: 0;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: max-height 0.7s var(--ease), margin 0.7s var(--ease), padding 0.7s var(--ease), opacity 0.35s, visibility 0s 0.7s;
+    margin: auto 0 0;            /* pushed to the bottom of the screen; after the results once there are some */
+    padding: 64px 0 4px;
   }
   .perk {
     flex: 0 1 96px;
@@ -346,6 +336,21 @@
   .verdict { margin: 12px 0 0; min-height: 1.5em; text-align: center; font-size: 13px; color: var(--muted); transition: min-height 0.35s var(--ease), margin 0.35s var(--ease); }
   .verdict:empty { min-height: 0; margin-top: 0; }
   .verdict.bad { color: var(--bad); }
+  .switch-sport {
+    --c: var(--accent);
+    margin-left: 4px;
+    padding: 3px 10px;
+    border: 1px solid var(--c);
+    border-radius: 999px;
+    background: none;
+    color: var(--ink);
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  .switch-sport:hover { background: var(--c); color: #fff; }
+  .switch-sport:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
   .verdict.show { animation: rise 0.45s 0.25s var(--ease) backwards; }
 
   /* results */
@@ -418,6 +423,61 @@
     white-space: pre-wrap;
     word-break: break-all;
   }
+
+  /* sports under the input, split by thin bars like the first sketch: the chosen one in its colour, the rest dimmed */
+  .sports { margin: 16px 0 0; }
+  .sports-list { position: relative; display: flex; flex-wrap: wrap; justify-content: center; row-gap: 4px; }
+  .sport-tab {
+    --c: var(--accent);
+    position: relative;
+    padding: 6px 15px 9px;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-size: 14.5px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: color 0.35s, opacity 0.35s;
+    opacity: 0.6;
+  }
+  .sport-tab + .sport-tab::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 24%;
+    bottom: 30%;
+    width: 1px;
+    background: var(--ink);
+    opacity: 0.28;
+  }
+  .sport-tab.line-start::before { display: none; }
+  .sport-tab[aria-selected="true"] { color: var(--c); opacity: 1; }
+  @supports (color: color-mix(in srgb, red, blue)) {
+    .sport-tab[aria-selected="true"] { color: color-mix(in srgb, var(--c) 80%, var(--ink)); }
+  }
+  @media (hover: hover) { .sport-tab:not([aria-selected="true"]):hover { color: var(--ink); opacity: 0.9; } }
+  .sport-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
+  .sport-ind {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+    pointer-events: none;
+    transition: transform 0.5s var(--ease), width 0.5s var(--ease);
+  }
+  .sport-ind.no-move { transition: none; }
+  @media (max-width: 480px) {
+    .sport-tab { padding: 6px 11px 9px; font-size: 13.5px; }
+  }
+
+  /* a short Wikipedia introduction for names without our own write-up */
+  .wiki-intro { margin: 0 0 6px; font-size: 14.5px; line-height: 1.6; color: var(--ink); text-wrap: pretty; animation: rise 0.45s var(--ease) backwards; }
+  .wiki-src { margin: 0; font-size: 12px; color: var(--muted); }
+  .wiki-src a { color: inherit; }
 
   .results { margin-top: 22px; }
   .rankhead {
@@ -805,19 +865,13 @@
       <div class="bar">
         <p class="hint" id="hint">Press Enter to see where it ranks</p>
         <div class="tools">
-          <div class="picker">
-            <button class="picker-btn" id="pickerBtn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="menu" aria-label="Choose a sport">
-              <i class="dot" id="pickerDot"></i>
-              <span id="pickerName">Basketball</span>
-              <span class="muted" id="pickerNoun">players</span>
-              <svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"/></svg>
-            </button>
-            <ul class="menu" id="menu" role="listbox" aria-label="Sport" hidden></ul>
-          </div>
           <button class="send" id="go" type="button" aria-label="Show where this ranks"><span class="num" id="num"></span></button>
         </div>
       </div>
     </section>
+    <nav class="sports enter" style="--i:2" aria-label="Choose a sport">
+      <div class="sports-list" id="sports" role="tablist"><span class="sport-ind" id="sportInd" aria-hidden="true"></span></div>
+    </nav>
     <div class="ts" id="ts" hidden></div>
     <p class="verdict" id="verdict" aria-live="polite"></p>
 
@@ -826,6 +880,15 @@
       <ul class="pick-list" id="pickList"></ul>
       <button class="pick-cancel" id="pickCancel" type="button">None of these, let me type it again</button>
     </section>
+
+
+
+    <div class="results" id="results" hidden>
+      <p class="rankhead"><span id="listName"></span><span class="legend" id="legend" hidden><i></i>your vote</span></p>
+      <ol class="board" id="ranking"></ol>
+      <article class="profile" id="profile"></article>
+      <p class="note" id="note">Photos: Wikimedia Commons.</p>
+    </div>
 
     <ul class="perks in" id="perks" aria-label="How it works">
       <li class="perk" style="--i:0">
@@ -874,14 +937,6 @@
         <span>Protected against bots</span>
       </li>
     </ul>
-
-
-    <div class="results" id="results" hidden>
-      <p class="rankhead"><span id="listName"></span><span class="legend" id="legend" hidden><i></i>your vote</span></p>
-      <ol class="board" id="ranking"></ol>
-      <article class="profile" id="profile"></article>
-      <p class="note" id="note">Photos: Wikimedia Commons.</p>
-    </div>
   </main>
 
 <script>
@@ -912,7 +967,12 @@
           facts: ["11 championships in 13 seasons with the Celtics", "5 MVP awards", "In 1966 became the first Black head coach in NBA history, and won two titles as player-coach"] },
         { name: "Magic Johnson", aka: ["magic", "earvin johnson", "earvin"],
           why: "A 6’9” point guard who made everyone around him better.",
-          facts: ["5 championships and 3 MVP awards with the Lakers", "Won Finals MVP as a rookie in 1980, playing center and scoring 42 in Game 6", "10,141 career assists, the NBA record when he retired"] }
+          facts: ["5 championships and 3 MVP awards with the Lakers", "Won Finals MVP as a rookie in 1980, playing center and scoring 42 in Game 6", "10,141 career assists, the NBA record when he retired"] },
+        { name: "Kobe Bryant", aka: ["kobe", "black mamba"] },
+        { name: "Tim Duncan", aka: ["duncan"] },
+        { name: "Larry Bird", aka: ["bird"] },
+        { name: "Wilt Chamberlain", aka: ["wilt", "chamberlain"] },
+        { name: "Stephen Curry", aka: ["steph", "curry", "steph curry"] }
       ]
     },
     {
@@ -932,7 +992,12 @@
           facts: ["Led the NFL in rushing in 8 of his 9 seasons", "104.3 rushing yards per game, still the NFL record", "3 MVP awards, and retired in 1966 while still at the top of the league"] },
         { name: "Peyton Manning", aka: ["peyton", "manning"],
           why: "The most MVPs ever, and a quarterback who ran the offense himself.",
-          facts: ["5 MVP awards, the most ever", "2 Super Bowl wins with 2 different franchises", "55 touchdown passes in 2013, still the single-season record"] }
+          facts: ["5 MVP awards, the most ever", "2 Super Bowl wins with 2 different franchises", "55 touchdown passes in 2013, still the single-season record"] },
+        { name: "Walter Payton", aka: ["payton", "sweetness"] },
+        { name: "Lawrence Taylor", aka: ["lt"] },
+        { name: "Patrick Mahomes", aka: ["mahomes"] },
+        { name: "Reggie White", aka: ["reggie"] },
+        { name: "Barry Sanders", aka: ["sanders"] }
       ]
     },
     {
@@ -952,7 +1017,12 @@
           facts: ["Played 26 NHL seasons, until he was 52", "6 Hart Trophies and 4 Stanley Cups", "The “Gordie Howe hat trick” (a goal, an assist and a fight) is named after him"] },
         { name: "Alex Ovechkin", aka: ["ovi", "ovechkin", "alexander ovechkin"],
           why: "The greatest goal scorer in NHL history, by the numbers.",
-          facts: ["Passed Gretzky’s career goals record in April 2025", "3 Hart Trophies", "Won the Stanley Cup and the Conn Smythe Trophy in 2018"] }
+          facts: ["Passed Gretzky’s career goals record in April 2025", "3 Hart Trophies", "Won the Stanley Cup and the Conn Smythe Trophy in 2018"] },
+        { name: "Jaromír Jágr", aka: ["jagr", "jaromir jagr"] },
+        { name: "Sidney Crosby", aka: ["crosby", "sid"] },
+        { name: "Maurice Richard", aka: ["rocket richard", "the rocket"] },
+        { name: "Jean Béliveau", aka: ["beliveau"] },
+        { name: "Patrick Roy", aka: ["roy"] }
       ]
     },
     {
@@ -972,7 +1042,12 @@
           facts: ["Hit .406 in 1941, the last player to hit .400", "Career on-base percentage of .482, the highest ever", "Missed almost five seasons to military service and still hit 521 home runs"] },
         { name: "Shohei Ohtani", aka: ["ohtani", "sho time", "shotime"],
           why: "A two-way star unlike anyone since Ruth.",
-          facts: ["First player with 50 home runs and 50 stolen bases in one season (2024)", "Unanimous MVP in 2021, 2023 and 2024", "Plays both ways, as a power hitter and a starting pitcher"] }
+          facts: ["First player with 50 home runs and 50 stolen bases in one season (2024)", "Unanimous MVP in 2021, 2023 and 2024", "Plays both ways, as a power hitter and a starting pitcher"] },
+        { name: "Barry Bonds", aka: ["bonds"] },
+        { name: "Ty Cobb", aka: ["cobb"] },
+        { name: "Mickey Mantle", aka: ["mantle", "the mick"] },
+        { name: "Lou Gehrig", aka: ["gehrig"] },
+        { name: "Walter Johnson", aka: ["big train"] }
       ]
     },
     {
@@ -992,7 +1067,12 @@
           facts: ["The top scorer in men’s international football", "The Champions League’s all-time top scorer, with 5 titles", "5 Ballon d’Or awards and the Euro 2016 title"] },
         { name: "Johan Cruyff", aka: ["cruyff", "cruijff", "johan"],
           why: "He changed how the game is played, first as a player and later as a coach.",
-          facts: ["3 Ballon d’Or awards (1971, 1973, 1974)", "3 European Cups in a row with Ajax", "Led the Netherlands to the 1974 World Cup final"] }
+          facts: ["3 Ballon d’Or awards (1971, 1973, 1974)", "3 European Cups in a row with Ajax", "Led the Netherlands to the 1974 World Cup final"] },
+        { name: "Zinedine Zidane", aka: ["zidane", "zizou"] },
+        { name: "Franz Beckenbauer", aka: ["beckenbauer", "der kaiser"] },
+        { name: "Alfredo Di Stéfano", aka: ["di stefano"] },
+        { name: "Ronaldinho", aka: ["ronaldinho"] },
+        { name: "Thierry Henry", aka: ["henry"] }
       ]
     },
     {
@@ -1012,7 +1092,12 @@
           facts: ["5 world championships, with 4 different teams", "24 wins in 51 races, a win rate of about 47%", "Held the record for most titles for 46 years"] },
         { name: "Max Verstappen", aka: ["max", "verstappen"],
           why: "Four straight titles, including the most dominant single season in F1 history.",
-          facts: ["4 world championships in a row, from 2021 to 2024", "19 wins in the 2023 season, a record", "The youngest Grand Prix winner ever, at 18"] }
+          facts: ["4 world championships in a row, from 2021 to 2024", "19 wins in the 2023 season, a record", "The youngest Grand Prix winner ever, at 18"] },
+        { name: "Alain Prost", aka: ["prost"] },
+        { name: "Jim Clark", aka: ["clark"] },
+        { name: "Niki Lauda", aka: ["lauda"] },
+        { name: "Sebastian Vettel", aka: ["vettel", "seb"] },
+        { name: "Fernando Alonso", aka: ["alonso", "nando"] }
       ]
     },
     {
@@ -1032,7 +1117,12 @@
           facts: ["Ready to Die (1994) is regularly ranked among the best rap albums", "Life After Death (1997) is certified Diamond", "Inducted into the Rock & Roll Hall of Fame in 2020"] },
         { name: "Eminem", aka: ["slim shady", "marshall mathers", "em"],
           why: "Technical skill and speed that few rappers have matched.",
-          facts: ["Won the Oscar for Best Original Song for “Lose Yourself”, a first for a rapper", "The Marshall Mathers LP (2000) was the fastest-selling rap album ever at the time", "Inducted into the Rock & Roll Hall of Fame in 2022"] }
+          facts: ["Won the Oscar for Best Original Song for “Lose Yourself”, a first for a rapper", "The Marshall Mathers LP (2000) was the fastest-selling rap album ever at the time", "Inducted into the Rock & Roll Hall of Fame in 2022"] },
+        { name: "Nas", aka: ["nasir jones", "nasty nas"] },
+        { name: "Lil Wayne", aka: ["weezy", "wayne"] },
+        { name: "Snoop Dogg", aka: ["snoop"] },
+        { name: "André 3000", aka: ["andre 3000", "andre"] },
+        { name: "Rakim", aka: ["rakim"] }
       ]
     },
     {
@@ -1052,7 +1142,12 @@
           facts: ["708 Test wickets, and the first bowler to reach 700", "The “Ball of the Century” to Mike Gatting in 1993", "Won the 1999 World Cup with Australia"] },
         { name: "Muttiah Muralitharan", aka: ["murali", "muralitharan", "muttiah"],
           why: "No bowler has taken more wickets in Test cricket.",
-          facts: ["800 Test wickets, the record", "67 five-wicket hauls in Tests, the most ever", "Took his 800th wicket in his final Test, in 2010"] }
+          facts: ["800 Test wickets, the record", "67 five-wicket hauls in Tests, the most ever", "Took his 800th wicket in his final Test, in 2010"] },
+        { name: "Brian Lara", aka: ["lara"] },
+        { name: "Viv Richards", aka: ["vivian richards", "viv"] },
+        { name: "Jacques Kallis", aka: ["kallis"] },
+        { name: "Virat Kohli", aka: ["kohli", "virat"] },
+        { name: "Wasim Akram", aka: ["wasim", "akram"] }
       ]
     }
   ];
@@ -1095,7 +1190,7 @@
   const stage = $("#stage"), composer = $("#composer"), input = $("#answer"), send = $("#go"), numEl = $("#num"), hint = $("#hint");
   const nounEl = $("#noun"), verdictEl = $("#verdict"), results = $("#results");
   const profile = $("#profile"), ranking = $("#ranking"), listName = $("#listName"), legend = $("#legend");
-  const pickerBtn = $("#pickerBtn"), pickerDot = $("#pickerDot"), pickerName = $("#pickerName"), pickerNoun = $("#pickerNoun"), menu = $("#menu");
+  const sportsEl = $("#sports"), sportInd = $("#sportInd");
   const ambient = $("#ambient");
   const pickEl = $("#pick"), pickTitle = $("#pickTitle"), pickList = $("#pickList");
   const perksEl = $("#perks");
@@ -1254,53 +1349,40 @@
   /* state */
   let sport = -1, view = null, rows = [], avatars = [], runId = 0, busy = false;
 
-  /* sport picker */
-  const options = SPORTS.map((s, i) => {
-    const li = document.createElement("li");
-    li.className = "opt";
-    li.id = "opt-" + s.id;
-    li.tabIndex = -1;
-    li.setAttribute("role", "option");
-    li.innerHTML = '<i class="dot" style="background:' + s.color + '"></i><span>' + s.tab + '</span><span class="pl">' + PLURAL[s.id] + "</span>" + CHECK;
-    li.addEventListener("click", () => { selectSport(i, true); closeMenu(false); });
-    menu.appendChild(li);
-    return li;
+  /* sports strip */
+  const tabs = SPORTS.map((s, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "sport-tab";
+    b.id = "tab-" + s.id;
+    b.setAttribute("role", "tab");
+    b.style.setProperty("--c", s.color);
+    b.textContent = s.tab;
+    b.addEventListener("click", () => selectSport(i, true));
+    b.addEventListener("keydown", (e) => {
+      const last = SPORTS.length - 1;
+      let to = null;
+      if (e.key === "ArrowRight") to = i === last ? 0 : i + 1;
+      else if (e.key === "ArrowLeft") to = i === 0 ? last : i - 1;
+      else if (e.key === "Home") to = 0;
+      else if (e.key === "End") to = last;
+      if (to !== null) { e.preventDefault(); selectSport(to, false); tabs[to].focus(); }
+    });
+    sportsEl.appendChild(b);
+    return b;
   });
-
-  function focusOpt(i) {
-    options.forEach((o, k) => o.classList.toggle("focus", k === i));
-    options[i].focus({ preventScroll: true });
+  // no bar at the start of a wrapped line; the underline glides to the chosen sport
+  function layoutTabs(animate) {
+    let top = null;
+    tabs.forEach((t) => { t.classList.toggle("line-start", t.offsetTop !== top); top = t.offsetTop; });
+    const t = tabs[sport];
+    if (!t) return;
+    sportInd.classList.toggle("no-move", !animate || reducedMotion);
+    sportInd.style.width = Math.max(0, t.offsetWidth - 30) + "px";
+    sportInd.style.transform = "translate(" + (t.offsetLeft + 15) + "px," + (t.offsetTop + t.offsetHeight - 4) + "px)";
   }
-  function openMenu() {
-    menu.hidden = false;
-    pickerBtn.setAttribute("aria-expanded", "true");
-    focusOpt(sport);
-  }
-  function closeMenu(refocus) {
-    if (menu.hidden) return;
-    menu.hidden = true;
-    pickerBtn.setAttribute("aria-expanded", "false");
-    options.forEach((o) => o.classList.remove("focus"));
-    if (refocus) pickerBtn.focus();
-  }
-  pickerBtn.addEventListener("click", () => (menu.hidden ? openMenu() : closeMenu(false)));
-  pickerBtn.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); if (menu.hidden) openMenu(); }
-  });
-  menu.addEventListener("keydown", (e) => {
-    const cur = options.findIndex((o) => o === document.activeElement);
-    const last = options.length - 1;
-    if (e.key === "ArrowDown") { e.preventDefault(); focusOpt(cur < last ? cur + 1 : 0); }
-    else if (e.key === "ArrowUp") { e.preventDefault(); focusOpt(cur > 0 ? cur - 1 : last); }
-    else if (e.key === "Home") { e.preventDefault(); focusOpt(0); }
-    else if (e.key === "End") { e.preventDefault(); focusOpt(last); }
-    else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (cur >= 0) { selectSport(cur, false); closeMenu(true); } }
-    else if (e.key === "Escape") { e.preventDefault(); closeMenu(true); }
-    else if (e.key === "Tab") { closeMenu(false); }
-  });
-  document.addEventListener("pointerdown", (e) => {
-    if (!menu.hidden && !e.target.closest(".picker")) closeMenu(false);
-  });
+  window.addEventListener("resize", () => layoutTabs(false));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => layoutTabs(false));
 
   /* video background: focus-in on entry, soft fade-out and pause on exit */
   let vidTimer = 0;
@@ -1329,7 +1411,6 @@
     perkItems.forEach((li) => bump(li, "go"));
   }
   function goHome() {
-    closeMenu(false);
     const atStart = sport === 0 && results.hidden && !input.value && !verdictEl.textContent;
     runId++;
     if (!atStart) selectSport(0, true, true);
@@ -1355,10 +1436,8 @@
     if (changed) setVideo(!!VIDEO[s.id]);
     nounEl.textContent = s.tab;
     if (swapping && changed) bump(nounEl, "swap");
-    pickerDot.style.background = s.color;
-    pickerName.textContent = s.tab;
-    pickerNoun.textContent = PLURAL[s.id];
-    options.forEach((o, k) => o.setAttribute("aria-selected", k === i ? "true" : "false"));
+    tabs.forEach((t, k) => { t.setAttribute("aria-selected", k === i ? "true" : "false"); t.tabIndex = k === i ? 0 : -1; });
+    layoutTabs(swapping);
 
     input.value = "";
     composer.classList.remove("done", "invalid");
@@ -1564,6 +1643,20 @@
       (t.length >= 3 && x.startsWith(t)) ||
       (t.length >= 5 && x.length >= 5 && lev1(x, t))));
   }
+  const SPORT_FIT = {
+    basketball: /basketball|\bNBA\b|\bWNBA\b/i,
+    football: /American football|National Football League|\bNFL\b|quarterback|running back|wide receiver|linebacker|tight end|cornerback|defensive end/i,
+    hockey: /ice hockey|National Hockey League|\bNHL\b|\bKHL\b/i,
+    baseball: /baseball|Major League Baseball|\bMLB\b/i,
+    soccer: /footballer|association football|soccer|FIFA|Premier League|La Liga|Serie A|Bundesliga|Ligue 1/i,
+    f1: /Formula One|racing driver|Grand Prix drivers/i,
+    rap: /rapper|hip[ -]hop/i,
+    cricket: /cricket/i,
+  };
+  const sportsOfPage = (p) => {
+    const text = [p.description || "", ...(p.categories || []).map((c) => c.title || "")].join(" | ");
+    return Object.keys(SPORT_FIT).filter((k) => SPORT_FIT[k].test(text));
+  };
   const isPerson = (p) => (p.categories || []).some((c) => /(living people|\bbirths|\bdeaths)$/i.test(c.title || ""));
 
   /* a guess counts only if Wikipedia has a biography whose title matches what was typed */
@@ -1579,21 +1672,28 @@
     const clean = typed.replace(/[|#<>\[\]{}]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
     const tokens = norm(clean).split(" ").filter(Boolean);
     const props = { prop: "pageimages|description|categories", piprop: "thumbnail|name", pithumbsize: "256", cllimit: "max" };
-    const ok = (p) => !p.missing && isPerson(p) && titleMatches(tokens, p.title);
+    const person = (p) => !p.missing && isPerson(p) && titleMatches(tokens, p.title);
+    const ok = (p) => person(p) && sportsOfPage(p).includes(s.id);          // must belong to this sport
     const result = (p) => ({ status: "valid", title: cleanTitle(p.title), full: p.title, desc: p.description || "", info: p.thumbnail ? wikiInfo(p) : null });
-    let reached = false;
+    let reached = false, elsewhere = null;
+    const note = (pages) => { if (!elsewhere) { const w = pages.find(person); if (w) elsewhere = { name: cleanTitle(w.title), sports: sportsOfPage(w) }; } };
     try {                                   // 1) the exact name as an article title
       const d = await api(WP, Object.assign({ titles: clean, redirects: "1" }, props));
       reached = true;
-      const p = ((d.query && d.query.pages) || []).find(ok);
+      const pages = (d.query && d.query.pages) || [];
+      const p = pages.find(ok);
       if (p) return result(p);
+      note(pages);
     } catch (e) { /* try the next step */ }
     try {                                   // 2) search, with the sport as context
-      const d = await api(WP, Object.assign({ generator: "search", gsrsearch: clean + " " + CTX[s.id], gsrlimit: "3", gsrnamespace: "0" }, props));
+      const d = await api(WP, Object.assign({ generator: "search", gsrsearch: clean + " " + CTX[s.id], gsrlimit: "5", gsrnamespace: "0" }, props));
       reached = true;
-      const p = ((d.query && d.query.pages) || []).sort(byIndex).find(ok);
+      const pages = ((d.query && d.query.pages) || []).sort(byIndex);
+      const p = pages.find(ok);
       if (p) return result(p);
+      note(pages);
     } catch (e) { /* offline or blocked */ }
+    if (elsewhere) return { status: "wrong", name: elsewhere.name, sports: elsewhere.sports };
     return { status: reached ? "invalid" : "offline" };
   }
 
@@ -1601,7 +1701,7 @@
 
   /* ---------- voting ---------- */
   const LIVE = !!(CONFIG.API && CONFIG.TURNSTILE_SITEKEY);
-  const PAGE_VERSION = "2026-11-14d";
+  const PAGE_VERSION = "2026-11-18";
   console.info("thegoat.is page " + PAGE_VERSION + (LIVE ? " (live)" : " (preview)"));
   const disp = (name) => cleanTitle(name);
   const CROSS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
@@ -1991,6 +2091,10 @@
     verify: () => "We couldn’t verify you’re human. Reload the page and try again.",
     unavailable: () => "The vote server is busy. Try again in a moment.",
     network: () => "Can’t reach the vote server. Check your connection and try again.",
+    wrong: (s, d) => {
+      const other = SPORTS.find((x) => x.id !== s.id && (d.sports || []).includes(x.id));
+      return other ? disp(d.name) + " belongs in " + other.tab + ", not " + s.tab + "." : disp(d.name) + " doesn’t fit the " + s.tab + " list.";
+    },
   };
 
   function resetFeedback() {
@@ -2027,7 +2131,9 @@
     const n = norm(q);
     if (!n) return -1;
     const sorted = (t) => t.split(" ").filter(Boolean).sort().join(" ");
-    return s.players.findIndex((p) => norm(p.name) === n || (p.aka || []).some((a) => norm(a) === n) || sorted(norm(p.name)) === sorted(n));
+    // a nickname counts only if it is not just part of the name ("mj" yes, "kobe" or "jordan" no: those may have namesakes)
+    const nick = (p, a) => { const x = norm(a); return x === n && !norm(p.name).split(" ").includes(x); };
+    return s.players.findIndex((p) => norm(p.name) === n || (p.aka || []).some((a) => nick(p, a)) || sorted(norm(p.name)) === sorted(n));
   }
   /* every starting-list player whose name fits what was typed */
   function seedMatches(s, q) {
@@ -2072,6 +2178,7 @@
       if (idx >= 0) { const n = s.players[idx].name; return { status: "ok", full: n, name: n, desc: "" }; }
     }
     const r = await resolveGuess(q, s);                                              // anyone else with a biography
+    if (r.status === "wrong") return { status: "invalid", kind: "wrong", name: r.name, sports: r.sports };
     if (r.status === "invalid") return { status: "invalid", kind: "unknown" };
     return { status: "ok", full: r.full || tidy(q), name: r.title || tidy(q), desc: r.desc || "" };
   }
@@ -2151,7 +2258,7 @@
     let id;
     try { id = await identify(q, s); } catch (e) { id = { status: "invalid", kind: "unknown" }; }
     if (run !== runId) return;
-    if (id.status === "invalid") { setBusy(false); showError(id.kind); return; }
+    if (id.status === "invalid") { setBusy(false); showError(id.kind, id); return; }
     if (id.status === "choose") { setBusy(false); showChooser(id.list, run, q); return; }
     setBusy(false);
     await proceed(id, run);
@@ -2201,7 +2308,8 @@
       voted[s.id] = { key: "", name: "" };               // this device voted here before (new window, cleared storage)
       saveVoted();
       await browse(id, run);
-    } else if (res.status === 422) showError("unknown");
+    } else if (res.status === 422 && b.status === "wrong_sport") showError("wrong", { name: b.name || id.name, sports: b.sports || [] });
+    else if (res.status === 422) showError("unknown");
     else if (res.status === 429) showError("rate");
     else if (res.status === 403) showError("verify");
     else if (res.status === 503) showError("unavailable");
@@ -2215,7 +2323,7 @@
     const lookKey = keyOf(id.full);
     setBusy(true, "Looking it up…");
     let r;
-    try { r = await vapi("/api/board?category=" + s.id + "&limit=5&focus=" + encodeURIComponent([mine.key, lookKey].filter(Boolean).join(","))); }
+    try { r = await vapi("/api/board?category=" + s.id + "&limit=10&focus=" + encodeURIComponent([mine.key, lookKey].filter(Boolean).join(","))); }
     catch (e) { if (run === runId) { setBusy(false); showError("network"); } return; }
     if (run !== runId) return;
     setBusy(false);
@@ -2233,7 +2341,7 @@
     showResult({ kind: "preview", board: { total: 0, rows, focus: [] }, shownKey: key, lookup: hit ? null : { key, full: id.full, desc: id.desc }, rank: hit ? hit.rank : null, live: false }, run);
   }
 
-  function showError(kind) {
+  function showError(kind, detail) {
     const s = SPORTS[sport];
     view = null; avatars = []; rows = [];
     composer.classList.remove("done");
@@ -2243,8 +2351,25 @@
     numEl.innerHTML = CROSS;
     bump(send, "pop");
     send.setAttribute("aria-label", "Not accepted");
-    verdictEl.textContent = (MESSAGES[kind] || MESSAGES.network)(s);
+    verdictEl.textContent = (MESSAGES[kind] || MESSAGES.network)(s, detail || {});
     verdictEl.classList.add("bad");
+    // wrong sport: offer the right one, with the name already filled in
+    const other = kind === "wrong" && detail ? SPORTS.findIndex((x) => x.id !== s.id && (detail.sports || []).includes(x.id)) : -1;
+    if (other >= 0) {
+      const go = document.createElement("button");
+      go.type = "button";
+      go.className = "switch-sport";
+      go.textContent = "Switch to " + SPORTS[other].tab;
+      go.style.setProperty("--c", SPORTS[other].color);
+      go.addEventListener("click", () => {
+        const name = disp(detail.name);
+        selectSport(other, true);
+        input.value = name;
+        send.classList.add("ready");
+        input.focus({ preventScroll: true });
+      });
+      verdictEl.append(" ", go);
+    }
     bump(verdictEl, "show");
     hint.textContent = "Try another name";
     results.hidden = true;
@@ -2275,7 +2400,8 @@
       r.rel = r.votes / max;
     });
     const first = results.hidden;
-    view = { rows, total: board.total, season: board.season, shownKey: o.shownKey, mineKey: o.mineKey, from: o.from || null, live: o.live !== false };
+    view = { rows, total: board.total, season: board.season, shownKey: o.shownKey, mineKey: o.mineKey, from: o.from || null, live: o.live !== false,
+      climb: o.kind === "voted" && o.before && o.after && o.after.rank < o.before.rank ? { key: o.shownKey, from: o.before.rank, to: o.after.rank } : null };
 
     const shownRow = rows.find((r) => r.key === o.shownKey);
     composer.classList.add("done");
@@ -2389,6 +2515,36 @@
       if (x && x.countEl) animateCount(x.countEl, view.from.votes, x.r.votes);
     }
     markShown();
+    if (view.climb) { const c = view.climb; requestAnimationFrame(() => playClimb(c)); }   // measured once the list is visible
+  }
+
+  /* overtaking: the voted row starts where it was and slides up past the names it overtook, which make room */
+  function playClimb(c) {
+    if (reducedMotion) return;
+    const main = rows.filter((x) => !x.r.extra);
+    const idx = main.findIndex((x) => x.r.key === c.key);
+    if (idx < 0 || main.length < 2) return;
+    const pitch = main[1].li.offsetTop - main[0].li.offsetTop;
+    const oldIdx = Math.min(c.from - 1, main.length);         // came from below the list: start just under it
+    const steps = oldIdx - idx;
+    if (steps <= 0 || !pitch) return;
+    const delay = parseFloat(getComputedStyle(results).getPropertyValue("--d")) * 1000 + 420;
+    const ease = "cubic-bezier(0.3, 0.8, 0.25, 1)";
+    const dur = 700 + Math.min(steps, 6) * 90;
+    const me = main[idx].b;
+    me.style.zIndex = "2";
+    me.style.background = "var(--pop)";                         // solid while it passes over the other rows
+    me.animate([
+      { transform: "translateY(" + steps * pitch + "px) scale(1)", boxShadow: "0 0 0 0 transparent" },
+      { transform: "translateY(" + steps * pitch * 0.15 + "px) scale(1.03)", boxShadow: "0 10px 28px rgba(0,0,0,0.22)", offset: 0.7 },
+      { transform: "none", boxShadow: "0 0 0 0 transparent" },
+    ], { duration: dur, delay, easing: ease, fill: "backwards" }).finished.then(() => { me.style.zIndex = ""; me.style.background = ""; }).catch(() => {});
+    for (let j = idx + 1; j <= Math.min(oldIdx, main.length - 1); j++) {
+      main[j].b.animate([{ transform: "translateY(" + -pitch + "px)" }, { transform: "none" }],
+        { duration: dur * 0.8, delay: delay + 60 + (j - idx) * 35, easing: ease, fill: "backwards" });
+    }
+    const rk = me.querySelector(".rk");
+    if (rk) rk.animate([{ transform: "scale(1)" }, { transform: "scale(1.35)" }, { transform: "scale(1)" }], { duration: 420, delay: delay + dur * 0.75, easing: "ease-out" });
   }
 
   function markShown() {
@@ -2425,7 +2581,7 @@
       : "No votes yet";
     const parts = [head, sub];
 
-    if (r.seed >= 0) {
+    if (r.seed >= 0 && s.players[r.seed].why) {
       const p = s.players[r.seed];
       const why = document.createElement("p");
       why.className = "why";
@@ -2439,13 +2595,46 @@
         ul.appendChild(li);
       });
       parts.push(why, ul);
-    } else if (r.desc) {
+    } else {
       const why = document.createElement("p");
       why.className = "why";
       why.textContent = r.desc;
-      parts.push(why);
+      why.hidden = !r.desc;
+      const intro = document.createElement("p");
+      intro.className = "wiki-intro";
+      intro.hidden = true;
+      const src = document.createElement("p");
+      src.className = "wiki-src";
+      src.hidden = true;
+      parts.push(why, intro, src);
+      const key = r.key;
+      wikiIntro(r.name).then((w) => {
+        if (!w || !view || view.shownKey !== key) return;
+        if (!why.textContent && w.desc) { why.textContent = w.desc.charAt(0).toUpperCase() + w.desc.slice(1) + "."; why.hidden = false; }
+        intro.textContent = w.text;
+        intro.hidden = false;
+        const a = document.createElement("a");
+        a.href = w.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Wikipedia";
+        src.replaceChildren("From ", a, " (CC BY-SA)");
+        src.hidden = false;
+      });
     }
     profile.replaceChildren(...parts);
+  }
+
+  const introMemo = new Map();
+  function wikiIntro(title) {
+    if (!introMemo.has(title)) {
+      introMemo.set(title, api(WP, { titles: title, redirects: "1", prop: "extracts|description", exintro: "1", explaintext: "1", exsentences: "3" })
+        .then((d) => {
+          const p = ((d.query && d.query.pages) || [])[0];
+          if (!p || p.missing || !p.extract) return null;
+          return { text: p.extract.replace(/\s*\([^()]*\)/g, "").replace(/\s+/g, " ").trim(), desc: p.description || "",
+            url: "https://en.wikipedia.org/wiki/" + encodeURIComponent(p.title.replace(/ /g, "_")) };
+        })
+        .catch(() => null));
+    }
+    return introMemo.get(title);
   }
 
   function pick(key) {

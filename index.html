@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- thegoat.is page 2026-11-18b -->
+<!-- thegoat.is page 2026-11-19 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -350,6 +350,27 @@
     transition: background-color 0.2s, color 0.2s;
   }
   .switch-sport:hover { background: var(--c); color: #fff; }
+  .verdict.wait { color: var(--ink); }
+  .verdict.wait::before { content: ""; display: inline-block; width: 7px; height: 7px; margin: 0 7px 1px 0; border-radius: 50%; background: #D9A21B; animation: waitdot 1.6s ease-in-out infinite; }
+  @keyframes waitdot { 50% { opacity: 0.35; transform: scale(0.8); } }
+  .notice {
+    --c: var(--accent);
+    position: fixed; z-index: 60; left: 50%; top: 16px;
+    display: flex; align-items: center; gap: 10px;
+    max-width: min(92vw, 460px); padding: 10px 10px 10px 14px;
+    border: 1px solid var(--line); border-left: 3px solid var(--c); border-radius: 14px;
+    background: var(--pop); color: var(--ink); font-size: 13.5px; line-height: 1.4;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    transform: translateX(-50%); animation: noticeIn 0.5s var(--ease) backwards;
+  }
+  .notice.out { animation: noticeOut 0.3s var(--ease) forwards; }
+  .notice .tick { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--c); color: #fff; }
+  .notice.no .tick { background: var(--muted); }
+  .notice button { flex: none; margin-left: auto; padding: 4px 8px; border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; cursor: pointer; }
+  .notice button:hover { background: var(--line); color: var(--ink); }
+  @keyframes noticeIn { from { opacity: 0; transform: translate(-50%, -14px) scale(0.97); } }
+  @keyframes noticeOut { to { opacity: 0; transform: translate(-50%, -10px); } }
+  @media (prefers-reduced-motion: reduce) { .notice, .notice.out, .verdict.wait::before { animation: none; } }
   .switch-sport:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
   .verdict.show { animation: rise 0.45s 0.25s var(--ease) backwards; }
 
@@ -845,7 +866,7 @@
   <div class="ambient" id="ambient" aria-hidden="true"><div class="glow"></div></div>
 
   <div class="bgvideo" id="bgvideo" aria-hidden="true">
-    <video id="vid" muted loop playsinline preload="auto" src="basketball-loop.mp4"></video>
+    <video id="vid" muted loop playsinline preload="auto" src="/_blob/0b6e13bfaa501e52d5ba84aa703263d2"></video>
     <div class="scrim"></div>
   </div>
 
@@ -1448,7 +1469,7 @@
     hint.textContent = hintFor(s);
     input.placeholder = placeholderFor(s);
     verdictEl.textContent = "";
-    verdictEl.classList.remove("show");
+    verdictEl.classList.remove("show", "wait");
     results.hidden = true;
     pickEl.hidden = true;
     stage.classList.remove("answered");
@@ -1701,7 +1722,7 @@
 
   /* ---------- voting ---------- */
   const LIVE = !!(CONFIG.API && CONFIG.TURNSTILE_SITEKEY);
-  const PAGE_VERSION = "2026-11-18b";
+  const PAGE_VERSION = "2026-11-19";
   console.info("thegoat.is page " + PAGE_VERSION + (LIVE ? " (live)" : " (preview)"));
   const disp = (name) => cleanTitle(name);
   const CROSS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
@@ -1731,6 +1752,7 @@
   function placeholderFor(s) {
     const v = voted[s.id];
     if (!v) return "Type a name…";
+    if (v.pending) return "Your vote for " + disp(v.name) + " is being checked. Look up anyone…";
     return v.name ? "You voted for " + disp(v.name) + ". Look up anyone…" : "This device already voted. Look up anyone…";
   }
 
@@ -2085,7 +2107,13 @@
       const r = await vapi("/api/status", { method: "POST", body: { category: s.id, dev: getDev(), fp: sg.fp, ck: sg.ck, cl: sg.cl, cm: sg.cm, br: sg.br, bf: sg.bf, pm: sg.pm, dt: sg.dt } });
       if (r.status !== 200) return;
       if (r.body.voted) {
-        voted[s.id] = r.body.candidate ? { key: r.body.candidate.key, name: r.body.candidate.name } : (voted[s.id] || { key: "", name: "" });
+        const was = voted[s.id] || {};
+        const st = r.body.state || "counted";
+        voted[s.id] = r.body.candidate ? { key: r.body.candidate.key, name: r.body.candidate.name } : (was.key ? was : { key: "", name: "" });
+        if (st === "pending") voted[s.id].pending = true;
+        if (st === "rejected") voted[s.id].declined = true;
+        if (was.pending && st === "counted") showNotice(s, true, voted[s.id].name);
+        if (was.pending && st === "rejected") showNotice(s, false, voted[s.id].name);
       } else if (voted[s.id]) {
         delete voted[s.id];                                 // the server has no vote (e.g. test votes were cleared): forget it here too
       } else return;
@@ -2104,8 +2132,39 @@
     return out;
   }
 
+  /* a vote that waited for a manual check: say clearly once it has been confirmed (or not) */
+  function showNotice(s, ok, name) {
+    const old = document.querySelector(".notice");
+    if (old) old.remove();
+    const n = document.createElement("div");
+    n.className = "notice" + (ok ? "" : " no");
+    n.setAttribute("role", "status");
+    n.style.setProperty("--c", s.color);
+    const tick = document.createElement("span");
+    tick.className = "tick";
+    tick.innerHTML = ok
+      ? '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>'
+      : '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+    const text = document.createElement("span");
+    text.textContent = ok
+      ? "Confirmed: your " + s.tab + " vote for " + disp(name) + " has been checked and counted."
+      : "Your " + s.tab + " vote for " + disp(name) + " couldn’t be confirmed, so it wasn’t counted.";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.textContent = "OK";
+    close.setAttribute("aria-label", "Dismiss");
+    const bye = () => { n.classList.add("out"); setTimeout(() => n.remove(), 320); };
+    close.addEventListener("click", bye);
+    n.append(tick, text, close);
+    document.body.append(n);
+  }
+
   /* ---------- answer flow ---------- */
   const MESSAGES = {
+    vpn: () => "Your vote didn’t go through: it came from a VPN or a data centre. Turn the VPN off and try again.",
+    tor: () => "Your vote didn’t go through: votes over Tor aren’t accepted. Use a normal connection and try again.",
+    private: () => "Your vote didn’t go through: private (incognito) windows can’t vote. Open the site in a normal window and try again.",
+    risk: () => "Your vote didn’t go through. Try again later, or from another network (e.g. mobile data instead of Wi-Fi).",
     shape: () => "That doesn’t look like a real name.",
     unknown: (s) => "We can’t find any " + s.noun + " with that name.",
     rate: () => "Too many attempts from your network. Try again later.",
@@ -2212,7 +2271,7 @@
     send.classList.remove("ready", "busy", "invalid", "answered", "unranked");
     numEl.innerHTML = ARROW;
     verdictEl.textContent = "";
-    verdictEl.classList.remove("show", "bad");
+    verdictEl.classList.remove("show", "bad", "wait");
     pickTitle.innerHTML = "";
     const b = document.createElement("b");
     b.textContent = "“" + q + "”";
@@ -2314,6 +2373,8 @@
     const s = SPORTS[sport];
     let res;
     try {
+      const pre = await getSignals();
+      if (pre.pm === 1) { setBusy(false); showError("private"); return; }   // the server refuses it as well
       setBusy(true, "Verifying you’re human…");
       const token = await getTurnstileToken();
       if (run !== runId) return;
@@ -2335,12 +2396,20 @@
     const b = res.body || {};
     if (b.dev) store.set("goat:dev:v1", b.dev);
     if (res.status === 200 && b.status === "ok") {
+      const pending = b.review === "pending";
       voted[s.id] = { key: b.candidate.key, name: b.candidate.name };
+      if (pending) voted[s.id].pending = true;
       saveVoted();
-      showResult({ kind: "voted", board: b.board, mineKey: b.candidate.key, shownKey: b.candidate.key, before: b.before, after: b.after, rank: b.after.rank,
+      showResult({ kind: "voted", pending, board: b.board, mineKey: b.candidate.key, shownKey: b.candidate.key, before: b.before, after: b.after, rank: b.after.rank,
         from: { key: b.candidate.key, votes: b.before.votes } }, run);
+    } else if (res.status === 200 && b.status === "rejected") {
+      showError(MESSAGES[b.reason] ? b.reason : "risk");      // not counted and not used up: they can try again
     } else if (res.status === 200 && b.status === "already_voted") {
+      const was = voted[s.id] || {};
       voted[s.id] = { key: b.candidate.key, name: b.candidate.name };
+      if (b.state === "pending") voted[s.id].pending = true;
+      if (b.state === "rejected") voted[s.id].declined = true;
+      if (was.pending && b.state === "counted") showNotice(s, true, b.candidate.name);
       saveVoted();
       await browse(id, run);
     } else if (res.status === 200 && b.status === "device_repeat") {
@@ -2391,6 +2460,7 @@
     bump(send, "pop");
     send.setAttribute("aria-label", "Not accepted");
     verdictEl.textContent = (MESSAGES[kind] || MESSAGES.network)(s, detail || {});
+    verdictEl.classList.remove("wait");
     verdictEl.classList.add("bad");
     // wrong sport: offer the right one, with the name already filled in
     const other = kind === "wrong" && detail ? SPORTS.findIndex((x) => x.id !== s.id && (detail.sports || []).includes(x.id)) : -1;
@@ -2410,7 +2480,7 @@
       verdictEl.append(" ", go);
     }
     bump(verdictEl, "show");
-    hint.textContent = "Try another name";
+    hint.textContent = ["vpn", "tor", "private", "risk"].includes(kind) ? "Your vote wasn’t used up. You can try again." : "Try another name";
     results.hidden = true;
     pickEl.hidden = true;
     stage.classList.remove("answered");
@@ -2452,10 +2522,20 @@
     bump(send, "pop");
 
     const mineName = o.mineKey ? disp((rows.find((r) => r.key === o.mineKey) || {}).name || (voted[s.id] || {}).name || "") : "";
-    if (o.kind === "voted") {
+    const mine = voted[s.id] || {};
+    verdictEl.classList.remove("wait");
+    if (o.kind === "voted" && o.pending) {
+      verdictEl.textContent = "Your vote for " + disp(shownRow.name) + " is in, but for technical reasons it needs a quick manual check before it counts. Come back later: you’ll see here once it’s confirmed.";
+      verdictEl.classList.add("wait");
+    } else if (o.kind === "voted") {
       verdictEl.textContent = o.after.votes > o.before.votes
         ? "Your vote is in. " + disp(shownRow.name) + " is #" + o.after.rank + " with " + plural(o.after.votes, "vote") + (o.after.rank < o.before.rank ? " — up from #" + o.before.rank + "." : ".")
         : "Your vote for " + disp(shownRow.name) + " is recorded. It shows up in the ranking once it’s verified.";
+    } else if (o.kind === "browse" && mine.pending && mineName) {
+      verdictEl.textContent = "Your vote for " + mineName + " is still waiting for a manual check. Here’s how " + disp(shownRow.name) + " stands.";
+      verdictEl.classList.add("wait");
+    } else if (o.kind === "browse" && mine.declined && mineName) {
+      verdictEl.textContent = "Your vote for " + mineName + " couldn’t be confirmed this year. Here’s how " + disp(shownRow.name) + " stands.";
     } else if (o.kind === "browse") {
       verdictEl.textContent = mineName
         ? "Votes are final: you voted for " + mineName + ". Here’s how " + disp(shownRow.name) + " stands."
@@ -2691,7 +2771,7 @@
       numEl.innerHTML = ARROW;
       send.setAttribute("aria-label", LIVE ? "Cast your vote" : "Show where this ranks");
       verdictEl.textContent = "";
-      verdictEl.classList.remove("show");
+      verdictEl.classList.remove("show", "wait");
       hint.textContent = hintFor(SPORTS[sport]);
     }
     send.classList.toggle("ready", input.value.trim().length > 0 && !busy);
@@ -2703,6 +2783,7 @@
 
   selectSport(0, true);
   playPerks("0.9s");
+  if (LIVE) setTimeout(() => SPORTS.forEach((x, i) => { if (i !== 0 && voted[x.id] && voted[x.id].pending) checkStatus(x); }), 1200);
 
   /* open the site with #debug at the end of the address to see what this browser sends */
   if (location.hash === "#debug") (async () => {

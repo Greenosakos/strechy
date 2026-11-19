@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- thegoat.is page 2026-11-19 -->
+<!-- thegoat.is page 2026-11-19b -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -1722,7 +1722,7 @@
 
   /* ---------- voting ---------- */
   const LIVE = !!(CONFIG.API && CONFIG.TURNSTILE_SITEKEY);
-  const PAGE_VERSION = "2026-11-19";
+  const PAGE_VERSION = "2026-11-19b";
   console.info("thegoat.is page " + PAGE_VERSION + (LIVE ? " (live)" : " (preview)"));
   const disp = (name) => cleanTitle(name);
   const CROSS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
@@ -2059,10 +2059,14 @@
   async function detectPrivate() {
     try {
       if (window.chrome && navigator.storage && navigator.storage.estimate) {
-        // Chromium (Chrome, Edge, Brave, Opera): a private window gets a small, memory-backed storage quota
+        // Chromium (Chrome, Edge, Brave, Opera). Brave reports the same fixed quota (2 GiB) in normal and private
+        // windows, and Chrome 133+ reports "usage + 10 GiB" in both, so the quota proves nothing there: unknown.
+        // Only an old Chromium with a tiny private quota (well under 1 GiB of headroom) is still recognised.
+        if (navigator.brave) return -1;
         const est = await navigator.storage.estimate();
-        const heap = (performance.memory && performance.memory.jsHeapSizeLimit) || 1073741824;
-        return est.quota < heap * 2 ? 1 : 0;
+        const free = (est.quota || 0) - (est.usage || 0);
+        if (est.quota === 2147483648) return -1;            // Brave-style fixed quota, even if navigator.brave is hidden
+        return free > 0 && free < 1073741824 ? 1 : -1;
       }
       if (navigator.storage && navigator.storage.getDirectory) {
         // Firefox and Safari switch the origin private file system off in private windows
